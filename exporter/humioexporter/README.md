@@ -45,7 +45,7 @@ This exporter requires as a minimum the following global configuration options:
 In addition, the following optional settings specific to this exporter can be overridden:
 
 - `disable_compression` (default: `false`): Whether to stop compressing payloads with gzip before sending them to Humio. This should only be disabled if compression can be shown to have a negative impact on performance in your specific deployment.
-- `tag` (default: `none`): The strategy to use for tagging telemetry data sent to Humio. By default, tagging is disabled, since it is a complex topic. See [Tagging](#tagging) for more information, including possible values.
+- `tag` (default: `none`): The strategy to use for tagging telemetry data sent to Humio. By default, tagging is disabled, since it is a complex topic. See [Tagging](#Tagging) for more information, including possible values.
 
 This exporter also supports inherited configuration options as described in [Inherited Options](#inherited-options). As defined in the [TLS Configuration Settings](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/configtls/README.md#tls-configuration-settings), TLS is enabled by default. This can be disabled by overriding the following configuration options:
 
