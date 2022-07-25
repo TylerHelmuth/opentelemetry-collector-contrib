@@ -4,8 +4,15 @@ on:
     - cron: "12 5 * * *" # arbitrary time not to DDOS GitHub
 
 jobs:
+  getlabels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get labels
+        run: |
+        echo "::set-output named=labels::$(gh label list -L 1000 | cut -f1 | grep 'receiver/\|processor/\|exporter/\|extension/\|cmd/\|pkg/' | paste -s -d, -)"
   stale:
     runs-on: ubuntu-latest
+    needs: getlabels
     steps:
       - uses: actions/stale@v5
         with:
@@ -13,6 +20,8 @@ jobs:
           stale-pr-message: 'This PR was marked stale due to lack of activity. It will be closed in 14 days.'
           close-pr-message: 'Closed as inactive. Feel free to reopen if this PR is still being worked on.'
           days-before-pr-stale: 14
-          days-before-issue-stale: 730
+          days-before-issue-stale: 1
           days-before-pr-close: 14
-          days-before-issue-close: 30
+          days-before-issue-close: 730
+          any-of-issue-labels: ${{needs.getlabels.outputs.labels}}
+          exempt-all-issue-assignees: true
