@@ -1,0 +1,2 @@
+processor/transform:
+  - processor/transformprocessor/**/*
