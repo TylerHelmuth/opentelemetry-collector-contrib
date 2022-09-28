@@ -1,3 +1,5 @@
 "processor/transformprocessor/**/*":
   - TylerHelmuth
+  
+"pkg/ottl/**/*":
   - robbkidd
