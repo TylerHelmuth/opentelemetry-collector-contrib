@@ -595,6 +595,121 @@ func Test_parse(t *testing.T) {
 				WhereClause: nil,
 			},
 		},
+		{
+			name:      "Invocation math expression",
+			statement: `set(attributes["test"], (1000 - 600)) where (1 + 1 * 2) == (three / one())`,
+			expected: &parsedStatement{
+				Invocation: invocation{
+					Function: "set",
+					Arguments: []value{
+						{
+							Path: &Path{
+								Fields: []Field{
+									{
+										Name:   "attributes",
+										MapKey: ottltest.Strp("test"),
+									},
+								},
+							},
+						},
+						{
+							MathExpression: &mathExpression{
+								Left: &addSubTerm{
+									Left: &mathValue{
+										ConstValue: &constValue{
+											Int: ottltest.Intp(1000),
+										},
+									},
+								},
+								Right: []*opAddSubTerm{
+									{
+										Operator: SUB,
+										Term: &addSubTerm{
+											Left: &mathValue{
+												ConstValue: &constValue{
+													Int: ottltest.Intp(600),
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				WhereClause: &booleanExpression{
+					Left: &term{
+						Left: &booleanValue{
+							Comparison: &comparison{
+								Left: value{
+									MathExpression: &mathExpression{
+										Left: &addSubTerm{
+											Left: &mathValue{
+												ConstValue: &constValue{
+													Int: ottltest.Intp(1),
+												},
+											},
+										},
+										Right: []*opAddSubTerm{
+											{
+												Operator: ADD,
+												Term: &addSubTerm{
+													Left: &mathValue{
+														ConstValue: &constValue{
+															Int: ottltest.Intp(1),
+														},
+													},
+													Right: []*opMultDivValue{
+														{
+															Operator: MULT,
+															Value: &mathValue{
+																ConstValue: &constValue{
+																	Int: ottltest.Intp(2),
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+								Op: EQ,
+								Right: value{
+									MathExpression: &mathExpression{
+										Left: &addSubTerm{
+											Left: &mathValue{
+												ConstValue: &constValue{
+													Path: &Path{
+														Fields: []Field{
+															{
+																Name: "three",
+															},
+														},
+													},
+												},
+											},
+											Right: []*opMultDivValue{
+												{
+													Operator: DIV,
+													Value: &mathValue{
+														ConstValue: &constValue{
+															Invocation: &invocation{
+																Function: "one",
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

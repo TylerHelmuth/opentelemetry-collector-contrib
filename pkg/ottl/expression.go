@@ -83,6 +83,10 @@ func (p *Parser[K]) newGetter(val value) (Getter[K], error) {
 		return &literal[K]{value: ([]byte)(*b)}, nil
 	}
 
+	if m := val.MathExpression; m != nil {
+		return p.evaluateMathExpression(val.MathExpression)
+	}
+
 	if val.Enum != nil {
 		enum, err := p.enumParser(val.Enum)
 		if err != nil {
