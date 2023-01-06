@@ -17,6 +17,7 @@ package ottl
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -884,21 +885,27 @@ func functionWithFloat(float64) (ExprFunc[interface{}], error) {
 	}, nil
 }
 
-type functionWithIntArguments struct {
-	Test int64
-}
-
 type functionWithIntFactory[K any] struct{}
 
-func (f functionWithIntFactory[K]) CreateEmptyArguments() Arguments {
-	return &functionWithIntArguments{}
+func (f functionWithIntFactory[K]) GetFunctionSignature() reflect.Type {
+	return reflect.TypeOf(f.functionWithInt)
 }
 
-func (f functionWithIntFactory[K]) CreateFunction(args Arguments) (ExprFunc[K], error) {
-	_ = args.(*functionWithIntArguments)
-	return func(context.Context, K) (interface{}, error) {
+func (f functionWithIntFactory[K]) CreateFunction(args []reflect.Value) (ExprFunc[K], error) {
+	return convert[K](reflect.ValueOf(f.functionWithInt).Call(args))
+}
+
+func (f functionWithIntFactory[K]) functionWithInt(int64) (ExprFunc[interface{}], error) {
+	return func(context.Context, interface{}) (interface{}, error) {
 		return "anything", nil
 	}, nil
+}
+
+func convert[K any](returnVals []reflect.Value) (ExprFunc[K], error) {
+	if returnVals[1].IsNil() {
+		return returnVals[0].Interface().(ExprFunc[K]), nil
+	}
+	return returnVals[0].Interface().(ExprFunc[K]), returnVals[1].Interface().(error)
 }
 
 func functionWithBool(bool) (ExprFunc[interface{}], error) {
