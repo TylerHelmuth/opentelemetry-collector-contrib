@@ -16,13 +16,18 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 
 import (
 	"context"
-
 	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func DeleteKey[K any](target ottl.Getter[K], key string) (ottl.ExprFunc[K], error) {
+type DeleteKeyFactory[K any] struct{}
+
+func (f *DeleteKeyFactory[K]) GetFunction() interface{} {
+	return deleteKey[K]
+}
+
+func deleteKey[K any](target ottl.Getter[K], key string) (ottl.ExprFunc[K], error) {
 	return func(ctx context.Context, tCtx K) (interface{}, error) {
 		val, err := target.Get(ctx, tCtx)
 		if err != nil {

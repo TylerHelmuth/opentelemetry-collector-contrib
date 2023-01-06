@@ -27,70 +27,77 @@ type EnumParser func(*EnumSymbol) (*Enum, error)
 
 type Enum int64
 
+type Arguments interface{}
+
+type FunctionFactory[K any] interface {
+	CreateEmptyArguments() Arguments
+
+	CreateFunction(args Arguments) (ExprFunc[K], error)
+}
+
 func (p *Parser[K]) newFunctionCall(inv invocation) (Expr[K], error) {
 	f, ok := p.functions[inv.Function]
 	if !ok {
 		return Expr[K]{}, fmt.Errorf("undefined function %v", inv.Function)
 	}
-	args, err := p.buildArgs(inv, reflect.TypeOf(f))
+
+	ia := f.CreateEmptyArguments()
+	rv := reflect.ValueOf(ia).Elem()
+	err := p.buildArgs(inv, rv)
 	if err != nil {
 		return Expr[K]{}, fmt.Errorf("error while parsing arguments for call to '%v': %w", inv.Function, err)
 	}
 
-	returnVals := reflect.ValueOf(f).Call(args)
-
-	if returnVals[1].IsNil() {
-		err = nil
-	} else {
-		err = returnVals[1].Interface().(error)
+	exprFunc, err := f.CreateFunction(ia)
+	if err != nil {
+		return Expr[K]{}, err
 	}
 
-	return Expr[K]{exprFunc: returnVals[0].Interface().(ExprFunc[K])}, err
+	return Expr[K]{exprFunc: exprFunc}, err
 }
 
-func (p *Parser[K]) buildArgs(inv invocation, fType reflect.Type) ([]reflect.Value, error) {
-	var args []reflect.Value
+func (p *Parser[K]) buildArgs(inv invocation, args reflect.Value) error {
 	// Some function arguments may be intended to take values from the calling processor
 	// instead of being passed by the caller of the OTTL function, so we have to keep
 	// track of the index of the argument passed within the DSL.
 	// e.g. TelemetrySettings, which is provided by the processor to the OTTL Parser struct.
 	DSLArgumentIndex := 0
-	for i := 0; i < fType.NumIn(); i++ {
-		argType := fType.In(i)
+	for i := 0; i < args.NumField(); i++ {
+		field := args.Field(i)
 
-		arg, isInternalArg := p.buildInternalArg(argType)
+		arg, isInternalArg := p.buildInternalArg(field.Type())
 		if isInternalArg {
-			args = append(args, reflect.ValueOf(arg))
+			field.Set(reflect.ValueOf(arg))
 			continue
 		}
 
 		if DSLArgumentIndex >= len(inv.Arguments) {
-			return nil, fmt.Errorf("not enough arguments")
+			return fmt.Errorf("not enough arguments")
 		}
 
 		argVal := inv.Arguments[DSLArgumentIndex]
 
 		var val any
 		var err error
-		if argType.Kind() == reflect.Slice {
-			val, err = p.buildSliceArg(argVal, argType)
+		if field.Kind() == reflect.Slice {
+			val, err = p.buildSliceArg(argVal, field.Type())
 		} else {
-			val, err = p.buildArg(argVal, argType)
+			val, err = p.buildArg(argVal, field.Type())
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument at position %v: %w", DSLArgumentIndex, err)
+			return fmt.Errorf("invalid argument at position %v: %w", DSLArgumentIndex, err)
 		}
-		args = append(args, reflect.ValueOf(val))
+		field.Set(reflect.ValueOf(val))
 
 		DSLArgumentIndex++
 	}
 
 	if len(inv.Arguments) > DSLArgumentIndex {
-		return nil, fmt.Errorf("too many arguments")
+		return fmt.Errorf("too many arguments")
 	}
 
-	return args, nil
+	return nil
 }
 
 func (p *Parser[K]) buildSliceArg(argVal value, argType reflect.Type) (any, error) {
