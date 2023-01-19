@@ -96,7 +96,8 @@ func Test_convertSumToGauge(t *testing.T) {
 
 			ctx := ottldatapoint.NewTransformContext(pmetric.NewNumberDataPoint(), metric, pmetric.NewMetricSlice(), pcommon.NewInstrumentationScope(), pcommon.NewResource())
 
-			exprFunc, _ := convertSumToGauge()
+			f := convertSumToGaugeFactory{}
+			exprFunc, _ := f.convertSumToGauge()
 
 			_, err := exprFunc(nil, ctx)
 			assert.Nil(t, err)

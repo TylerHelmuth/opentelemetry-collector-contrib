@@ -17,6 +17,7 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"regexp"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -24,7 +25,17 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func DeleteMatchingKeys[K any](target ottl.Getter[K], pattern string) (ottl.ExprFunc[K], error) {
+type DeleteMatchingKeysFactory[K any] struct{}
+
+func (f DeleteMatchingKeysFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.deleteMatchingKeys)
+}
+
+func (f DeleteMatchingKeysFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.deleteMatchingKeys(args[0].Interface().(ottl.Getter[K]), args[1].String())
+}
+
+func (f DeleteMatchingKeysFactory[K]) deleteMatchingKeys(target ottl.Getter[K], pattern string) (ottl.ExprFunc[K], error) {
 	compiledPattern, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, fmt.Errorf("the regex pattern supplied to delete_matching_keys is not a valid pattern: %w", err)

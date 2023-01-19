@@ -158,7 +158,8 @@ func Test_ConvertSummarySumValToSum(t *testing.T) {
 			actualMetrics := pmetric.NewMetricSlice()
 			tt.input.CopyTo(actualMetrics.AppendEmpty())
 
-			evaluate, err := convertSummarySumValToSum(tt.temporality, tt.monotonicity)
+			f := convertSummarySumValToSumFactory{}
+			evaluate, err := f.convertSummarySumValToSum(tt.temporality, tt.monotonicity)
 			assert.NoError(t, err)
 
 			_, err = evaluate(nil, ottldatapoint.NewTransformContext(pmetric.NewNumberDataPoint(), tt.input, actualMetrics, pcommon.NewInstrumentationScope(), pcommon.NewResource()))
@@ -183,7 +184,8 @@ func Test_ConvertSummarySumValToSum_validation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := convertSummarySumValToSum(tt.stringAggTemp, true)
+			f := convertSummarySumValToSumFactory{}
+			_, err := f.convertSummarySumValToSum(tt.stringAggTemp, true)
 			assert.Error(t, err, "unknown aggregation temporality: not a real aggregation temporality")
 		})
 	}

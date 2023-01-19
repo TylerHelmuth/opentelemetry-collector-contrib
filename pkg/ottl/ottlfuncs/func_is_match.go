@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 
@@ -28,7 +29,17 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func IsMatch[K any](target ottl.Getter[K], pattern string) (ottl.ExprFunc[K], error) {
+type IsMatchFactory[K any] struct{}
+
+func (f IsMatchFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.isMatch)
+}
+
+func (f IsMatchFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.isMatch(args[0].Interface().(ottl.Getter[K]), args[1].String())
+}
+
+func (f IsMatchFactory[K]) isMatch(target ottl.Getter[K], pattern string) (ottl.ExprFunc[K], error) {
 	compiledPattern, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, fmt.Errorf("the pattern supplied to IsMatch is not a valid regexp pattern: %w", err)

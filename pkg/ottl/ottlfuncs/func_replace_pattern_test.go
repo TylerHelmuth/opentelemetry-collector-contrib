@@ -77,7 +77,8 @@ func Test_replacePattern(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			scenarioValue := pcommon.NewValueStr(input.Str())
 
-			exprFunc, err := ReplacePattern(tt.target, tt.pattern, tt.replacement)
+			f := ReplacePatternFactory[pcommon.Value]{}
+			exprFunc, err := f.replacePattern(tt.target, tt.pattern, tt.replacement)
 			assert.NoError(t, err)
 
 			result, err := exprFunc(nil, scenarioValue)
@@ -104,7 +105,8 @@ func Test_replacePattern_bad_input(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := ReplacePattern[interface{}](target, "regexp", "{replacement}")
+	f := ReplacePatternFactory[interface{}]{}
+	exprFunc, err := f.replacePattern(target, "regexp", "{replacement}")
 	assert.NoError(t, err)
 
 	result, err := exprFunc(nil, input)
@@ -123,8 +125,8 @@ func Test_replacePattern_get_nil(t *testing.T) {
 			return nil
 		},
 	}
-
-	exprFunc, err := ReplacePattern[interface{}](target, `nomatch\=[^\s]*(\s?)`, "{anything}")
+	f := ReplacePatternFactory[interface{}]{}
+	exprFunc, err := f.replacePattern(target, `nomatch\=[^\s]*(\s?)`, "{anything}")
 	assert.NoError(t, err)
 
 	result, err := exprFunc(nil, nil)
@@ -145,7 +147,8 @@ func Test_replacePatterns_invalid_pattern(t *testing.T) {
 	}
 
 	invalidRegexPattern := "*"
-	_, err := ReplacePattern[interface{}](target, invalidRegexPattern, "{anything}")
+	f := ReplacePatternFactory[interface{}]{}
+	_, err := f.replacePattern(target, invalidRegexPattern, "{anything}")
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "error parsing regexp:")
 }

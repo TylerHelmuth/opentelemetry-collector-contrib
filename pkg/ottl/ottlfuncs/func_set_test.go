@@ -69,7 +69,8 @@ func Test_set(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			scenarioValue := pcommon.NewValueStr(input.Str())
 
-			exprFunc, err := Set(tt.setter, tt.getter)
+			f := SetFactory[pcommon.Value]{}
+			exprFunc, err := f.set(tt.setter, tt.getter)
 			assert.NoError(t, err)
 
 			result, err := exprFunc(nil, scenarioValue)
@@ -98,7 +99,8 @@ func Test_set_get_nil(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := Set[interface{}](setter, getter)
+	f := SetFactory[interface{}]{}
+	exprFunc, err := f.set(setter, getter)
 	assert.NoError(t, err)
 
 	result, err := exprFunc(nil, nil)

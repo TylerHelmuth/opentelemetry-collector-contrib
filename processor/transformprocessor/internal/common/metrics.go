@@ -161,14 +161,14 @@ type MetricParserCollection struct {
 
 type MetricParserCollectionOption func(*MetricParserCollection) error
 
-func WithMetricParser(functions map[string]interface{}) MetricParserCollectionOption {
+func WithMetricParser(functions ottl.FunctionFactoryMap[ottlmetric.TransformContext]) MetricParserCollectionOption {
 	return func(mp *MetricParserCollection) error {
 		mp.metricParser = ottlmetric.NewParser(functions, mp.settings)
 		return nil
 	}
 }
 
-func WithDataPointParser(functions map[string]interface{}) MetricParserCollectionOption {
+func WithDataPointParser(functions ottl.FunctionFactoryMap[ottldatapoint.TransformContext]) MetricParserCollectionOption {
 	return func(mp *MetricParserCollection) error {
 		mp.dataPointParser = ottldatapoint.NewParser(functions, mp.settings)
 		return nil

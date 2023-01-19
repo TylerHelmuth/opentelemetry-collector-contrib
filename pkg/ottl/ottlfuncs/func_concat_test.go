@@ -233,7 +233,8 @@ func Test_concat(t *testing.T) {
 				getters[i] = val
 			}
 
-			exprFunc, err := Concat(getters, tt.delimiter)
+			f := ConcatFactory[interface{}]{}
+			exprFunc, err := f.concat(getters, tt.delimiter)
 			assert.NoError(t, err)
 			result, err := exprFunc(nil, nil)
 			assert.NoError(t, err)

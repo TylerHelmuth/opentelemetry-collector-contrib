@@ -17,6 +17,7 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"regexp"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -24,12 +25,22 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
+type ReplaceAllPatternsFactory[K any] struct{}
+
+func (f ReplaceAllPatternsFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.replaceAllPatterns)
+}
+
+func (f ReplaceAllPatternsFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.replaceAllPatterns(args[0].Interface().(ottl.GetSetter[K]), args[1].String(), args[2].String(), args[3].String())
+}
+
 const (
 	modeKey   = "key"
 	modeValue = "value"
 )
 
-func ReplaceAllPatterns[K any](target ottl.GetSetter[K], mode string, regexPattern string, replacement string) (ottl.ExprFunc[K], error) {
+func (f ReplaceAllPatternsFactory[K]) replaceAllPatterns(target ottl.GetSetter[K], mode string, regexPattern string, replacement string) (ottl.ExprFunc[K], error) {
 	compiledPattern, err := regexp.Compile(regexPattern)
 	if err != nil {
 		return nil, fmt.Errorf("the regex pattern supplied to replace_all_patterns is not a valid pattern: %w", err)

@@ -17,12 +17,23 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	jsoniter "github.com/json-iterator/go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
+
+type ParseJSONFactory[K any] struct{}
+
+func (f ParseJSONFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.parseJSON)
+}
+
+func (f ParseJSONFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.parseJSON(args[0].Interface().(ottl.Getter[K]))
+}
 
 // ParseJSON factory function returns a `pcommon.Map` struct that is a result of parsing the target string as JSON
 // Each JSON type is converted into a `pdata.Value` using the following map:
@@ -33,7 +44,7 @@ import (
 //	JSON null    -> nil
 //	JSON arrays  -> pdata.SliceValue
 //	JSON objects -> map[string]any
-func ParseJSON[K any](target ottl.Getter[K]) (ottl.ExprFunc[K], error) {
+func (f ParseJSONFactory[K]) parseJSON(target ottl.Getter[K]) (ottl.ExprFunc[K], error) {
 	return func(ctx context.Context, tCtx K) (interface{}, error) {
 		targetVal, err := target.Get(ctx, tCtx)
 		if err != nil {

@@ -149,7 +149,8 @@ func Test_MergeMaps(t *testing.T) {
 			scenarioMap := pcommon.NewMap()
 			input.CopyTo(scenarioMap)
 
-			exprFunc, err := MergeMaps[pcommon.Map](targetGetter, tt.source, tt.strategy)
+			f := MergeMapsFactory[pcommon.Map]{}
+			exprFunc, err := f.mergeMaps(targetGetter, tt.source, tt.strategy)
 			assert.NoError(t, err)
 
 			result, err := exprFunc(context.Background(), scenarioMap)

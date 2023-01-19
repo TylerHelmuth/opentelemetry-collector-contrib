@@ -16,6 +16,7 @@ package metrics // import "github.com/open-telemetry/opentelemetry-collector-con
 
 import (
 	"context"
+	"reflect"
 
 	"go.opentelemetry.io/collector/pdata/pmetric"
 
@@ -23,7 +24,17 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottldatapoint"
 )
 
-func convertSumToGauge() (ottl.ExprFunc[ottldatapoint.TransformContext], error) {
+type convertSumToGaugeFactory struct{}
+
+func (f convertSumToGaugeFactory) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.convertSumToGauge)
+}
+
+func (f convertSumToGaugeFactory) CreateFunction(_ []reflect.Value) (ottl.ExprFunc[ottldatapoint.TransformContext], error) {
+	return f.convertSumToGauge()
+}
+
+func (f convertSumToGaugeFactory) convertSumToGauge() (ottl.ExprFunc[ottldatapoint.TransformContext], error) {
 	return func(_ context.Context, tCtx ottldatapoint.TransformContext) (interface{}, error) {
 		metric := tCtx.GetMetric()
 		if metric.Type() != pmetric.MetricTypeSum {

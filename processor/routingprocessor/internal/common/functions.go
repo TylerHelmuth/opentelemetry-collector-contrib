@@ -16,22 +16,35 @@ package common // import "github.com/open-telemetry/opentelemetry-collector-cont
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/ottlfuncs"
 )
 
-func Functions[K any]() map[string]interface{} {
-	return map[string]interface{}{
-		"IsMatch":              ottlfuncs.IsMatch[K],
-		"delete_key":           ottlfuncs.DeleteKey[K],
-		"delete_matching_keys": ottlfuncs.DeleteMatchingKeys[K],
+type routeFactory[K any] struct{}
+
+func (f routeFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.route)
+}
+
+func (f routeFactory[K]) CreateFunction(_ []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.route()
+}
+
+func (f routeFactory[K]) route() (ottl.ExprFunc[K], error) {
+	return func(context.Context, K) (interface{}, error) {
+		return true, nil
+	}, nil
+}
+
+func Functions[K any]() ottl.FunctionFactoryMap[K] {
+	return ottl.FunctionFactoryMap[K]{
+		"IsMatch":              ottlfuncs.IsMatchFactory[K]{},
+		"delete_key":           ottlfuncs.DeleteKeyFactory[K]{},
+		"delete_matching_keys": ottlfuncs.DeleteMatchingKeysFactory[K]{},
 		// noop function, it is required since the parsing of conditions is not implemented yet,
 		// see https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/13545
-		"route": func() (ottl.ExprFunc[K], error) {
-			return func(context.Context, K) (interface{}, error) {
-				return true, nil
-			}, nil
-		},
+		"route": routeFactory[K]{},
 	}
 }

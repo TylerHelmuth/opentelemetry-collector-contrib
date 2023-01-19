@@ -128,7 +128,8 @@ func Test_limit(t *testing.T) {
 			scenarioMap := pcommon.NewMap()
 			input.CopyTo(scenarioMap)
 
-			exprFunc, err := Limit(tt.target, tt.limit, tt.keep)
+			f := LimitFactory[pcommon.Map]{}
+			exprFunc, err := f.limit(tt.target, tt.limit, tt.keep)
 			assert.NoError(t, err)
 
 			result, err := exprFunc(nil, scenarioMap)
@@ -164,7 +165,8 @@ func Test_limit_validation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := Limit(tt.target, tt.limit, tt.keep)
+			f := LimitFactory[interface{}]{}
+			_, err := f.limit(tt.target, tt.limit, tt.keep)
 			assert.Error(t, err)
 		})
 	}
@@ -182,7 +184,8 @@ func Test_limit_bad_input(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := Limit[interface{}](target, 1, []string{})
+	f := LimitFactory[interface{}]{}
+	exprFunc, err := f.limit(target, 1, []string{})
 	assert.NoError(t, err)
 	result, err := exprFunc(nil, input)
 	assert.NoError(t, err)
@@ -201,7 +204,8 @@ func Test_limit_get_nil(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := Limit[interface{}](target, 1, []string{})
+	f := LimitFactory[interface{}]{}
+	exprFunc, err := f.limit(target, 1, []string{})
 	assert.NoError(t, err)
 	result, err := exprFunc(nil, nil)
 	assert.NoError(t, err)

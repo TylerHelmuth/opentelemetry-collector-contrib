@@ -16,11 +16,21 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func Set[K any](target ottl.Setter[K], value ottl.Getter[K]) (ottl.ExprFunc[K], error) {
+type SetFactory[K any] struct{}
+
+func (f SetFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.set)
+}
+
+func (f SetFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.set(args[0].Interface().(ottl.Setter[K]), args[1].Interface().(ottl.Getter[K]))
+}
+func (f SetFactory[K]) set(target ottl.Setter[K], value ottl.Getter[K]) (ottl.ExprFunc[K], error) {
 	return func(ctx context.Context, tCtx K) (interface{}, error) {
 		val, err := value.Get(ctx, tCtx)
 		if err != nil {

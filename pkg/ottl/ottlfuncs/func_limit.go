@@ -17,13 +17,24 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func Limit[K any](target ottl.GetSetter[K], limit int64, priorityKeys []string) (ottl.ExprFunc[K], error) {
+type LimitFactory[K any] struct{}
+
+func (f LimitFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.limit)
+}
+
+func (f LimitFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.limit(args[0].Interface().(ottl.GetSetter[K]), args[1].Int(), args[2].Interface().([]string))
+}
+
+func (f LimitFactory[K]) limit(target ottl.GetSetter[K], limit int64, priorityKeys []string) (ottl.ExprFunc[K], error) {
 	if limit < 0 {
 		return nil, fmt.Errorf("invalid limit for limit function, %d cannot be negative", limit)
 	}

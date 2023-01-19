@@ -17,11 +17,22 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
+
+type MergeMapsFactory[K any] struct{}
+
+func (f MergeMapsFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.mergeMaps)
+}
+
+func (f MergeMapsFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.mergeMaps(args[0].Interface().(ottl.Getter[K]), args[1].Interface().(ottl.Getter[K]), args[2].String())
+}
 
 const (
 	INSERT = "insert"
@@ -35,7 +46,7 @@ const (
 //	insert: Insert the value from `source` into `target` where the key does not already exist.
 //	update: Update the entry in `target` with the value from `source` where the key does exist
 //	upsert: Performs insert or update. Insert the value from `source` into `target` where the key does not already exist and update the entry in `target` with the value from `source` where the key does exist.
-func MergeMaps[K any](target ottl.Getter[K], source ottl.Getter[K], strategy string) (ottl.ExprFunc[K], error) {
+func (f MergeMapsFactory[K]) mergeMaps(target ottl.Getter[K], source ottl.Getter[K], strategy string) (ottl.ExprFunc[K], error) {
 	if strategy != INSERT && strategy != UPDATE && strategy != UPSERT {
 		return nil, fmt.Errorf("invalid value for strategy, %v, must be 'insert', 'update' or 'upsert'", strategy)
 	}

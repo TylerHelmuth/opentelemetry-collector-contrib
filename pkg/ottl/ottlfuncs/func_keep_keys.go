@@ -16,13 +16,24 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 
 import (
 	"context"
+	"reflect"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func KeepKeys[K any](target ottl.GetSetter[K], keys []string) (ottl.ExprFunc[K], error) {
+type KeepKeysFactory[K any] struct{}
+
+func (f KeepKeysFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.keepKeys)
+}
+
+func (f KeepKeysFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.keepKeys(args[0].Interface().(ottl.GetSetter[K]), args[1].Interface().([]string))
+}
+
+func (f KeepKeysFactory[K]) keepKeys(target ottl.GetSetter[K], keys []string) (ottl.ExprFunc[K], error) {
 	keySet := make(map[string]struct{}, len(keys))
 	for _, key := range keys {
 		keySet[key] = struct{}{}

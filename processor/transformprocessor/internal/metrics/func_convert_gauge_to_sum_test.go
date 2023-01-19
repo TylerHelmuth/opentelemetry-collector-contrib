@@ -128,7 +128,8 @@ func Test_convertGaugeToSum(t *testing.T) {
 
 			ctx := ottldatapoint.NewTransformContext(pmetric.NewNumberDataPoint(), metric, pmetric.NewMetricSlice(), pcommon.NewInstrumentationScope(), pcommon.NewResource())
 
-			exprFunc, _ := convertGaugeToSum(tt.stringAggTemp, tt.monotonic)
+			f := convertGaugeToSumFactory{}
+			exprFunc, _ := f.convertGaugeToSum(tt.stringAggTemp, tt.monotonic)
 
 			_, err := exprFunc(nil, ctx)
 			assert.Nil(t, err)
@@ -153,7 +154,8 @@ func Test_convertGaugeToSum_validation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := convertGaugeToSum(tt.stringAggTemp, true)
+			f := convertGaugeToSumFactory{}
+			_, err := f.convertGaugeToSum(tt.stringAggTemp, true)
 			assert.Error(t, err, "unknown aggregation temporality: not a real aggregation temporality")
 		})
 	}

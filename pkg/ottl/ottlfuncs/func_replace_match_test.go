@@ -67,7 +67,8 @@ func Test_replaceMatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			scenarioValue := pcommon.NewValueStr(input.Str())
 
-			exprFunc, err := ReplaceMatch(tt.target, tt.pattern, tt.replacement)
+			f := ReplaceMatchFactory[pcommon.Value]{}
+			exprFunc, err := f.replaceMatch(tt.target, tt.pattern, tt.replacement)
 			assert.NoError(t, err)
 			result, err := exprFunc(nil, scenarioValue)
 			assert.NoError(t, err)
@@ -93,7 +94,8 @@ func Test_replaceMatch_bad_input(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := ReplaceMatch[interface{}](target, "*", "{replacement}")
+	f := ReplaceMatchFactory[interface{}]{}
+	exprFunc, err := f.replaceMatch(target, "*", "{replacement}")
 	assert.NoError(t, err)
 
 	result, err := exprFunc(nil, input)
@@ -114,7 +116,8 @@ func Test_replaceMatch_get_nil(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := ReplaceMatch[interface{}](target, "*", "{anything}")
+	f := ReplaceMatchFactory[interface{}]{}
+	exprFunc, err := f.replaceMatch(target, "*", "{anything}")
 	assert.NoError(t, err)
 
 	result, err := exprFunc(nil, nil)

@@ -47,7 +47,7 @@ func (tCtx TransformContext) getCache() pcommon.Map {
 	return tCtx.cache
 }
 
-func NewParser(functions map[string]interface{}, telemetrySettings component.TelemetrySettings) ottl.Parser[TransformContext] {
+func NewParser(functions ottl.FunctionFactoryMap[TransformContext], telemetrySettings component.TelemetrySettings) ottl.Parser[TransformContext] {
 	return ottl.NewParser[TransformContext](functions, parsePath, parseEnum, telemetrySettings)
 }
 

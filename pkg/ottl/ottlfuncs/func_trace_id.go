@@ -17,13 +17,24 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"errors"
+	"reflect"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func TraceID[K any](bytes []byte) (ottl.ExprFunc[K], error) {
+type TraceIDFactory[K any] struct{}
+
+func (f TraceIDFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.traceID)
+}
+
+func (f TraceIDFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.traceID(args[0].Bytes())
+}
+
+func (f TraceIDFactory[K]) traceID(bytes []byte) (ottl.ExprFunc[K], error) {
 	if len(bytes) != 16 {
 		return nil, errors.New("traces ids must be 16 bytes")
 	}

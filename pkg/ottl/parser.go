@@ -24,7 +24,7 @@ import (
 )
 
 type Parser[K any] struct {
-	functions         map[string]FunctionFactory[K]
+	functions         FunctionFactoryMap[K]
 	pathParser        PathExpressionParser[K]
 	enumParser        EnumParser
 	telemetrySettings component.TelemetrySettings
@@ -56,7 +56,7 @@ func (s *Statement[K]) Execute(ctx context.Context, tCtx K) (any, bool, error) {
 	return result, condition, nil
 }
 
-func NewParser[K any](functions map[string]FunctionFactory[K], pathParser PathExpressionParser[K], enumParser EnumParser, telemetrySettings component.TelemetrySettings) Parser[K] {
+func NewParser[K any](functions FunctionFactoryMap[K], pathParser PathExpressionParser[K], enumParser EnumParser, telemetrySettings component.TelemetrySettings) Parser[K] {
 	return Parser[K]{
 		functions:         functions,
 		pathParser:        pathParser,

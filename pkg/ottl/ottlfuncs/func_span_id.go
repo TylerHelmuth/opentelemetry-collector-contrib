@@ -17,13 +17,24 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"errors"
+	"reflect"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func SpanID[K any](bytes []byte) (ottl.ExprFunc[K], error) {
+type SpanIDFactory[K any] struct{}
+
+func (f SpanIDFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.spanID)
+}
+
+func (f SpanIDFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.spanID(args[0].Bytes())
+}
+
+func (f SpanIDFactory[K]) spanID(bytes []byte) (ottl.ExprFunc[K], error) {
 	if len(bytes) != 8 {
 		return nil, errors.New("span ids must be 8 bytes")
 	}

@@ -16,6 +16,7 @@ package common // import "github.com/open-telemetry/opentelemetry-collector-cont
 
 import (
 	"context"
+	"reflect"
 
 	"go.opentelemetry.io/collector/component"
 
@@ -104,19 +105,31 @@ func statementsToExpr[K any](statements []*ottl.Statement[K]) expr.BoolExpr[K] {
 	return expr.Or(rets...)
 }
 
-func functions[K any]() map[string]interface{} {
-	return map[string]interface{}{
-		"TraceID":     ottlfuncs.TraceID[K],
-		"SpanID":      ottlfuncs.SpanID[K],
-		"IsMatch":     ottlfuncs.IsMatch[K],
-		"Concat":      ottlfuncs.Concat[K],
-		"Split":       ottlfuncs.Split[K],
-		"Int":         ottlfuncs.Int[K],
-		"ConvertCase": ottlfuncs.ConvertCase[K],
-		"drop": func() (ottl.ExprFunc[K], error) {
-			return func(context.Context, K) (interface{}, error) {
-				return true, nil
-			}, nil
-		},
+type dropFactory[K any] struct{}
+
+func (f dropFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.drop)
+}
+
+func (f dropFactory[K]) CreateFunction(_ []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.drop()
+}
+
+func (f dropFactory[K]) drop() (ottl.ExprFunc[K], error) {
+	return func(context.Context, K) (interface{}, error) {
+		return true, nil
+	}, nil
+}
+
+func functions[K any]() ottl.FunctionFactoryMap[K] {
+	return ottl.FunctionFactoryMap[K]{
+		"TraceID":     ottlfuncs.TraceIDFactory[K]{},
+		"SpanID":      ottlfuncs.SpanIDFactory[K]{},
+		"IsMatch":     ottlfuncs.IsMatchFactory[K]{},
+		"Concat":      ottlfuncs.ConcatFactory[K]{},
+		"Split":       ottlfuncs.SplitFactory[K]{},
+		"Int":         ottlfuncs.IntFactory[K]{},
+		"ConvertCase": ottlfuncs.ConvertCaseFactory[K]{},
+		"drop":        dropFactory[K]{},
 	}
 }

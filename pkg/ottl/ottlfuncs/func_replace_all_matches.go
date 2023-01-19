@@ -17,6 +17,7 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/gobwas/glob"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -24,7 +25,17 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func ReplaceAllMatches[K any](target ottl.GetSetter[K], pattern string, replacement string) (ottl.ExprFunc[K], error) {
+type ReplaceAllMatchesFactory[K any] struct{}
+
+func (f ReplaceAllMatchesFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.replaceAllMatches)
+}
+
+func (f ReplaceAllMatchesFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.replaceAllMatches(args[0].Interface().(ottl.GetSetter[K]), args[1].String(), args[2].String())
+}
+
+func (f ReplaceAllMatchesFactory[K]) replaceAllMatches(target ottl.GetSetter[K], pattern string, replacement string) (ottl.ExprFunc[K], error) {
 	glob, err := glob.Compile(pattern)
 	if err != nil {
 		return nil, fmt.Errorf("the pattern supplied to replace_match is not a valid pattern: %w", err)

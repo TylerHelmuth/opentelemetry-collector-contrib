@@ -17,6 +17,7 @@ package metrics // import "github.com/open-telemetry/opentelemetry-collector-con
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"go.opentelemetry.io/collector/pdata/pmetric"
 
@@ -24,7 +25,17 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottldatapoint"
 )
 
-func convertGaugeToSum(stringAggTemp string, monotonic bool) (ottl.ExprFunc[ottldatapoint.TransformContext], error) {
+type convertGaugeToSumFactory struct{}
+
+func (f convertGaugeToSumFactory) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.convertGaugeToSum)
+}
+
+func (f convertGaugeToSumFactory) CreateFunction(args []reflect.Value) (ottl.ExprFunc[ottldatapoint.TransformContext], error) {
+	return f.convertGaugeToSum(args[0].String(), args[1].Bool())
+}
+
+func (f convertGaugeToSumFactory) convertGaugeToSum(stringAggTemp string, monotonic bool) (ottl.ExprFunc[ottldatapoint.TransformContext], error) {
 	var aggTemp pmetric.AggregationTemporality
 	switch stringAggTemp {
 	case "delta":

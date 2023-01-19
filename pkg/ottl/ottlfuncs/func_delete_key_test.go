@@ -76,7 +76,8 @@ func Test_deleteKey(t *testing.T) {
 			scenarioMap := pcommon.NewMap()
 			input.CopyTo(scenarioMap)
 
-			exprFunc, err := DeleteKey(tt.target, tt.key)
+			f := DeleteKeyFactory[pcommon.Map]{}
+			exprFunc, err := f.deleteKey(tt.target, tt.key)
 			assert.NoError(t, err)
 
 			_, err = exprFunc(nil, scenarioMap)
@@ -92,19 +93,16 @@ func Test_deleteKey(t *testing.T) {
 
 func Test_deleteKey_bad_input(t *testing.T) {
 	input := pcommon.NewValueStr("not a map")
-	target := &ottl.StandardGetSetter[interface{}]{
+	target := &ottl.StandardGetSetter[any]{
 		Getter: func(ctx context.Context, tCtx interface{}) (interface{}, error) {
 			return tCtx, nil
-		},
-		Setter: func(ctx context.Context, tCtx interface{}, val interface{}) error {
-			t.Errorf("nothing should be set in this scenario")
-			return nil
 		},
 	}
 
 	key := "anything"
 
-	exprFunc, err := DeleteKey[interface{}](target, key)
+	f := DeleteKeyFactory[interface{}]{}
+	exprFunc, err := f.deleteKey(target, key)
 	assert.NoError(t, err)
 	result, err := exprFunc(nil, input)
 	assert.NoError(t, err)
@@ -125,7 +123,8 @@ func Test_deleteKey_get_nil(t *testing.T) {
 
 	key := "anything"
 
-	exprFunc, err := DeleteKey[interface{}](target, key)
+	f := DeleteKeyFactory[interface{}]{}
+	exprFunc, err := f.deleteKey(target, key)
 	assert.NoError(t, err)
 	result, err := exprFunc(nil, nil)
 	assert.NoError(t, err)

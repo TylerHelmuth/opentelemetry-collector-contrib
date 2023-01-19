@@ -17,6 +17,7 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/iancoleman/strcase"
@@ -24,7 +25,17 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func ConvertCase[K any](target ottl.Getter[K], toCase string) (ottl.ExprFunc[K], error) {
+type ConvertCaseFactory[K any] struct{}
+
+func (f ConvertCaseFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.convertCase)
+}
+
+func (f ConvertCaseFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.convertCase(args[0].Interface().(ottl.Getter[K]), args[1].String())
+}
+
+func (f ConvertCaseFactory[K]) convertCase(target ottl.Getter[K], toCase string) (ottl.ExprFunc[K], error) {
 	if toCase != "lower" && toCase != "upper" && toCase != "snake" && toCase != "camel" {
 		return nil, fmt.Errorf("invalid case: %s, allowed cases are: lower, upper, snake, camel", toCase)
 	}

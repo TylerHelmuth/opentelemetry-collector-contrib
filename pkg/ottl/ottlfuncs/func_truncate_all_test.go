@@ -93,7 +93,8 @@ func Test_truncateAll(t *testing.T) {
 			scenarioMap := pcommon.NewMap()
 			input.CopyTo(scenarioMap)
 
-			exprFunc, err := TruncateAll(tt.target, tt.limit)
+			f := TruncateAllFactory[pcommon.Map]{}
+			exprFunc, err := f.truncateAll(tt.target, tt.limit)
 			assert.NoError(t, err)
 
 			result, err := exprFunc(nil, scenarioMap)
@@ -109,7 +110,8 @@ func Test_truncateAll(t *testing.T) {
 }
 
 func Test_truncateAll_validation(t *testing.T) {
-	_, err := TruncateAll[interface{}](&ottl.StandardGetSetter[interface{}]{}, -1)
+	f := TruncateAllFactory[interface{}]{}
+	_, err := f.truncateAll(&ottl.StandardGetSetter[interface{}]{}, -1)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "invalid limit for truncate_all function, -1 cannot be negative")
 }
@@ -126,7 +128,8 @@ func Test_truncateAll_bad_input(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := TruncateAll[interface{}](target, 1)
+	f := TruncateAllFactory[interface{}]{}
+	exprFunc, err := f.truncateAll(target, 1)
 	assert.NoError(t, err)
 
 	result, err := exprFunc(nil, input)
@@ -146,7 +149,8 @@ func Test_truncateAll_get_nil(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := TruncateAll[interface{}](target, 1)
+	f := TruncateAllFactory[interface{}]{}
+	exprFunc, err := f.truncateAll(target, 1)
 	assert.NoError(t, err)
 
 	result, err := exprFunc(nil, nil)

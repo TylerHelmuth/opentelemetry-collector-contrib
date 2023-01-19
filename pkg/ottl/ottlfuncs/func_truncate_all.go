@@ -17,13 +17,24 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func TruncateAll[K any](target ottl.GetSetter[K], limit int64) (ottl.ExprFunc[K], error) {
+type TruncateAllFactory[K any] struct{}
+
+func (f TruncateAllFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.truncateAll)
+}
+
+func (f TruncateAllFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.truncateAll(args[0].Interface().(ottl.GetSetter[K]), args[1].Int())
+}
+
+func (f TruncateAllFactory[K]) truncateAll(target ottl.GetSetter[K], limit int64) (ottl.ExprFunc[K], error) {
 	if limit < 0 {
 		return nil, fmt.Errorf("invalid limit for truncate_all function, %d cannot be negative", limit)
 	}

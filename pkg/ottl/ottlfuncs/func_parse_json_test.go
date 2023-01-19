@@ -147,7 +147,8 @@ func Test_ParseJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			exprFunc, err := ParseJSON(tt.target)
+			f := ParseJSONFactory[interface{}]{}
+			exprFunc, err := f.parseJSON(tt.target)
 			assert.NoError(t, err)
 
 			result, err := exprFunc(context.Background(), nil)
@@ -178,7 +179,8 @@ func Test_ParseJSON_Error(t *testing.T) {
 			return 1, nil
 		},
 	}
-	exprFunc, err := ParseJSON[interface{}](target)
+	f := ParseJSONFactory[interface{}]{}
+	exprFunc, err := f.parseJSON(target)
 	assert.NoError(t, err)
 	_, err = exprFunc(context.Background(), nil)
 	assert.Error(t, err)

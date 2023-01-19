@@ -17,11 +17,22 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func Substring[K any](target ottl.Getter[K], start int64, length int64) (ottl.ExprFunc[K], error) {
+type SubstringFactory[K any] struct{}
+
+func (f SubstringFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.substring)
+}
+
+func (f SubstringFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.substring(args[0].Interface().(ottl.Getter[K]), args[1].Int(), args[2].Int())
+}
+
+func (f SubstringFactory[K]) substring(target ottl.Getter[K], start int64, length int64) (ottl.ExprFunc[K], error) {
 	if start < 0 {
 		return nil, fmt.Errorf("invalid start for substring function, %d cannot be negative", start)
 	}

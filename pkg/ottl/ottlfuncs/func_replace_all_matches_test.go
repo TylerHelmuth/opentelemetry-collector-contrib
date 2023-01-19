@@ -75,7 +75,8 @@ func Test_replaceAllMatches(t *testing.T) {
 			scenarioMap := pcommon.NewMap()
 			input.CopyTo(scenarioMap)
 
-			exprFunc, err := ReplaceAllMatches(tt.target, tt.pattern, tt.replacement)
+			f := ReplaceAllMatchesFactory[pcommon.Map]{}
+			exprFunc, err := f.replaceAllMatches(tt.target, tt.pattern, tt.replacement)
 			assert.NoError(t, err)
 
 			result, err := exprFunc(nil, scenarioMap)
@@ -102,7 +103,8 @@ func Test_replaceAllMatches_bad_input(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := ReplaceAllMatches[interface{}](target, "*", "{replacement}")
+	f := ReplaceAllMatchesFactory[interface{}]{}
+	exprFunc, err := f.replaceAllMatches(target, "*", "{replacement}")
 	assert.NoError(t, err)
 	result, err := exprFunc(nil, input)
 	assert.NoError(t, err)
@@ -121,7 +123,8 @@ func Test_replaceAllMatches_get_nil(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := ReplaceAllMatches[interface{}](target, "*", "{anything}")
+	f := ReplaceAllMatchesFactory[interface{}]{}
+	exprFunc, err := f.replaceAllMatches(target, "*", "{anything}")
 	assert.NoError(t, err)
 	result, err := exprFunc(nil, nil)
 	assert.NoError(t, err)

@@ -17,12 +17,23 @@ package ottlfuncs // import "github.com/open-telemetry/opentelemetry-collector-c
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
-func Concat[K any](vals []ottl.Getter[K], delimiter string) (ottl.ExprFunc[K], error) {
+type ConcatFactory[K any] struct{}
+
+func (f ConcatFactory[K]) GetFunctionType() reflect.Type {
+	return reflect.TypeOf(f.concat)
+}
+
+func (f ConcatFactory[K]) CreateFunction(args []reflect.Value) (ottl.ExprFunc[K], error) {
+	return f.concat(args[0].Interface().([]ottl.Getter[K]), args[1].String())
+}
+
+func (f ConcatFactory[K]) concat(vals []ottl.Getter[K], delimiter string) (ottl.ExprFunc[K], error) {
 	return func(ctx context.Context, tCtx K) (interface{}, error) {
 		builder := strings.Builder{}
 		for i, rv := range vals {

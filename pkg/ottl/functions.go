@@ -27,10 +27,19 @@ type EnumParser func(*EnumSymbol) (*Enum, error)
 
 type Enum int64
 
+type FunctionFactoryMap[K any] map[string]FunctionFactory[K]
+
 type FunctionFactory[K any] interface {
-	GetFunctionSignature() reflect.Type
+	GetFunctionType() reflect.Type
 
 	CreateFunction(args []reflect.Value) (ExprFunc[K], error)
+}
+
+func Convert[K any](returnVals []reflect.Value) (ExprFunc[K], error) {
+	if returnVals[1].IsNil() {
+		return returnVals[0].Interface().(ExprFunc[K]), nil
+	}
+	return returnVals[0].Interface().(ExprFunc[K]), returnVals[1].Interface().(error)
 }
 
 func (p *Parser[K]) newFunctionCall(inv invocation) (Expr[K], error) {
@@ -39,7 +48,7 @@ func (p *Parser[K]) newFunctionCall(inv invocation) (Expr[K], error) {
 		return Expr[K]{}, fmt.Errorf("undefined function %v", inv.Function)
 	}
 
-	args, err := p.buildArgs(inv, f.GetFunctionSignature())
+	args, err := p.buildArgs(inv, f.GetFunctionType())
 	if err != nil {
 		return Expr[K]{}, fmt.Errorf("error while parsing arguments for call to '%v': %w", inv.Function, err)
 	}

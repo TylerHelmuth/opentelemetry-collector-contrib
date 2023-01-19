@@ -27,10 +27,10 @@ import (
 
 func Test_DataPointFunctions(t *testing.T) {
 	expected := common.Functions[ottldatapoint.TransformContext]()
-	expected["convert_sum_to_gauge"] = convertSumToGauge
-	expected["convert_gauge_to_sum"] = convertGaugeToSum
-	expected["convert_summary_sum_val_to_sum"] = convertSummarySumValToSum
-	expected["convert_summary_count_val_to_sum"] = convertSummaryCountValToSum
+	expected["convert_sum_to_gauge"] = convertSumToGaugeFactory{}
+	expected["convert_gauge_to_sum"] = convertGaugeToSumFactory{}
+	expected["convert_summary_sum_val_to_sum"] = convertSummarySumValToSumFactory{}
+	expected["convert_summary_count_val_to_sum"] = convertSummaryCountValToSumFactory{}
 
 	actual := DataPointFunctions()
 

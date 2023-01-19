@@ -15,40 +15,41 @@
 package common // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor/internal/common"
 
 import (
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlresource"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/ottlscope"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/ottlfuncs"
 )
 
-func Functions[K any]() map[string]interface{} {
-	return map[string]interface{}{
-		"TraceID":              ottlfuncs.TraceID[K],
-		"SpanID":               ottlfuncs.SpanID[K],
-		"IsMatch":              ottlfuncs.IsMatch[K],
-		"Concat":               ottlfuncs.Concat[K],
-		"Split":                ottlfuncs.Split[K],
-		"Int":                  ottlfuncs.Int[K],
-		"ConvertCase":          ottlfuncs.ConvertCase[K],
-		"ParseJSON":            ottlfuncs.ParseJSON[K],
-		"Substring":            ottlfuncs.Substring[K],
-		"keep_keys":            ottlfuncs.KeepKeys[K],
-		"set":                  ottlfuncs.Set[K],
-		"truncate_all":         ottlfuncs.TruncateAll[K],
-		"limit":                ottlfuncs.Limit[K],
-		"replace_match":        ottlfuncs.ReplaceMatch[K],
-		"replace_all_matches":  ottlfuncs.ReplaceAllMatches[K],
-		"replace_pattern":      ottlfuncs.ReplacePattern[K],
-		"replace_all_patterns": ottlfuncs.ReplaceAllPatterns[K],
-		"delete_key":           ottlfuncs.DeleteKey[K],
-		"delete_matching_keys": ottlfuncs.DeleteMatchingKeys[K],
-		"merge_maps":           ottlfuncs.MergeMaps[K],
+func Functions[K any]() ottl.FunctionFactoryMap[K] {
+	return ottl.FunctionFactoryMap[K]{
+		"TraceID":              ottlfuncs.TraceIDFactory[K]{},
+		"SpanID":               ottlfuncs.SpanIDFactory[K]{},
+		"IsMatch":              ottlfuncs.IsMatchFactory[K]{},
+		"Concat":               ottlfuncs.ConcatFactory[K]{},
+		"Split":                ottlfuncs.SplitFactory[K]{},
+		"Int":                  ottlfuncs.IntFactory[K]{},
+		"ConvertCase":          ottlfuncs.ConvertCaseFactory[K]{},
+		"ParseJSON":            ottlfuncs.ParseJSONFactory[K]{},
+		"Substring":            ottlfuncs.SubstringFactory[K]{},
+		"keep_keys":            ottlfuncs.KeepKeysFactory[K]{},
+		"set":                  ottlfuncs.SetFactory[K]{},
+		"truncate_all":         ottlfuncs.TruncateAllFactory[K]{},
+		"limit":                ottlfuncs.LimitFactory[K]{},
+		"replace_match":        ottlfuncs.ReplaceMatchFactory[K]{},
+		"replace_all_matches":  ottlfuncs.ReplaceAllMatchesFactory[K]{},
+		"replace_pattern":      ottlfuncs.ReplacePatternFactory[K]{},
+		"replace_all_patterns": ottlfuncs.ReplaceAllPatternsFactory[K]{},
+		"delete_key":           ottlfuncs.DeleteKeyFactory[K]{},
+		"delete_matching_keys": ottlfuncs.DeleteMatchingKeysFactory[K]{},
+		"merge_maps":           ottlfuncs.MergeMapsFactory[K]{},
 	}
 }
 
-func ResourceFunctions() map[string]interface{} {
+func ResourceFunctions() ottl.FunctionFactoryMap[ottlresource.TransformContext] {
 	return Functions[ottlresource.TransformContext]()
 }
 
-func ScopeFunctions() map[string]interface{} {
+func ScopeFunctions() ottl.FunctionFactoryMap[ottlscope.TransformContext] {
 	return Functions[ottlscope.TransformContext]()
 }

@@ -130,7 +130,8 @@ func Test_replaceAllPatterns(t *testing.T) {
 			scenarioMap := pcommon.NewMap()
 			input.CopyTo(scenarioMap)
 
-			exprFunc, err := ReplaceAllPatterns[pcommon.Map](tt.target, tt.mode, tt.pattern, tt.replacement)
+			f := ReplaceAllPatternsFactory[pcommon.Map]{}
+			exprFunc, err := f.replaceAllPatterns(tt.target, tt.mode, tt.pattern, tt.replacement)
 			assert.NoError(t, err)
 
 			_, err = exprFunc(nil, scenarioMap)
@@ -157,7 +158,8 @@ func Test_replaceAllPatterns_bad_input(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := ReplaceAllPatterns[interface{}](target, modeValue, "regexpattern", "{replacement}")
+	f := ReplaceAllPatternsFactory[interface{}]{}
+	exprFunc, err := f.replaceAllPatterns(target, modeValue, "regexpattern", "{replacement}")
 	assert.Nil(t, err)
 
 	_, err = exprFunc(nil, input)
@@ -177,7 +179,8 @@ func Test_replaceAllPatterns_get_nil(t *testing.T) {
 		},
 	}
 
-	exprFunc, err := ReplaceAllPatterns[interface{}](target, modeValue, "regexp", "{anything}")
+	f := ReplaceAllPatternsFactory[interface{}]{}
+	exprFunc, err := f.replaceAllPatterns(target, modeValue, "regexp", "{anything}")
 	assert.NoError(t, err)
 
 	_, err = exprFunc(nil, nil)
@@ -197,7 +200,8 @@ func Test_replaceAllPatterns_invalid_pattern(t *testing.T) {
 	}
 
 	invalidRegexPattern := "*"
-	exprFunc, err := ReplaceAllPatterns[interface{}](target, modeValue, invalidRegexPattern, "{anything}")
+	f := ReplaceAllPatternsFactory[interface{}]{}
+	exprFunc, err := f.replaceAllPatterns(target, modeValue, invalidRegexPattern, "{anything}")
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "error parsing regexp:")
 	assert.Nil(t, exprFunc)
@@ -216,7 +220,8 @@ func Test_replaceAllPatterns_invalid_model(t *testing.T) {
 	}
 
 	invalidMode := "invalid"
-	exprFunc, err := ReplaceAllPatterns[interface{}](target, invalidMode, "regex", "{anything}")
+	f := ReplaceAllPatternsFactory[interface{}]{}
+	exprFunc, err := f.replaceAllPatterns(target, invalidMode, "regex", "{anything}")
 	assert.Nil(t, exprFunc)
 	assert.Contains(t, err.Error(), "invalid mode")
 }
