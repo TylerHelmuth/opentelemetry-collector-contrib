@@ -16,6 +16,7 @@ package traces // import "github.com/open-telemetry/opentelemetry-collector-cont
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -74,6 +75,14 @@ func (w worker) simulateTraces() {
 
 		if err := limiter.Wait(context.Background()); err != nil {
 			w.logger.Fatal("limiter waited failed, retry", zap.Error(err))
+		}
+
+		if rand.Intn(5) == 0 {
+			sp.SetAttributes(attribute.String("tag", "test"))
+		}
+
+		if rand.Intn(5) == 0 {
+			child.SetAttributes(attribute.String("tag", "test"))
 		}
 
 		opt := trace.WithTimestamp(time.Now().Add(fakeSpanDuration))
