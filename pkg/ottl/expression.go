@@ -67,12 +67,102 @@ func (l literal[K]) Get(context.Context, K) (interface{}, error) {
 	return l.value, nil
 }
 
+type pathGetter[K any] struct {
+	getSetter GetSetter[K]
+	keys      []key
+}
+
+func (p pathGetter[K]) Get(ctx context.Context, tCtx K) (interface{}, error) {
+	result, err := p.getSetter.Get(ctx, tCtx)
+	if err != nil {
+		return nil, err
+	}
+	if p.keys != nil {
+		for _, k := range p.keys {
+			if k.Map != nil {
+				var ok bool
+				switch r := result.(type) {
+				case pcommon.Map:
+					result, ok = r.Get(*k.Map)
+					if !ok {
+						return nil, fmt.Errorf("key not found in map")
+					}
+				case map[string]interface{}:
+					result, ok = r[*k.Map]
+					if !ok {
+						return nil, fmt.Errorf("key not found in map")
+					}
+				default:
+					return nil, fmt.Errorf("type, %T, does not support string indexing", result)
+				}
+			} else if k.Slice != nil {
+				switch r := result.(type) {
+				case pcommon.Slice:
+					if int(*k.Slice) >= r.Len() {
+						return nil, fmt.Errorf("index out of bounds")
+					}
+					result = r.At(int(*k.Slice))
+				case []interface{}:
+					if int(*k.Slice) >= len(r) {
+						return nil, fmt.Errorf("index out of bounds")
+					}
+					result = r[*k.Slice]
+				default:
+					return nil, fmt.Errorf("type, %T, does not support int indexing", result)
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
 type exprGetter[K any] struct {
 	expr Expr[K]
+	keys []key
 }
 
 func (g exprGetter[K]) Get(ctx context.Context, tCtx K) (interface{}, error) {
-	return g.expr.Eval(ctx, tCtx)
+	result, err := g.expr.Eval(ctx, tCtx)
+	if err != nil {
+		return nil, err
+	}
+	if g.keys != nil {
+		for _, k := range g.keys {
+			if k.Map != nil {
+				var ok bool
+				switch r := result.(type) {
+				case pcommon.Map:
+					result, ok = r.Get(*k.Map)
+					if !ok {
+						return nil, fmt.Errorf("key not found in map")
+					}
+				case map[string]interface{}:
+					result, ok = r[*k.Map]
+					if !ok {
+						return nil, fmt.Errorf("key not found in map")
+					}
+				default:
+					return nil, fmt.Errorf("type, %T, does not support string indexing", result)
+				}
+			} else if k.Slice != nil {
+				switch r := result.(type) {
+				case pcommon.Slice:
+					if int(*k.Slice) >= r.Len() {
+						return nil, fmt.Errorf("index out of bounds")
+					}
+					result = r.At(int(*k.Slice))
+				case []interface{}:
+					if int(*k.Slice) >= len(r) {
+						return nil, fmt.Errorf("index out of bounds")
+					}
+					result = r[*k.Slice]
+				default:
+					return nil, fmt.Errorf("type, %T, does not support int indexing", result)
+				}
+			}
+		}
+	}
+	return result, nil
 }
 
 type listGetter[K any] struct {
@@ -206,7 +296,13 @@ func (p *Parser[K]) newGetter(val value) (Getter[K], error) {
 			return &literal[K]{value: *i}, nil
 		}
 		if eL.Path != nil {
-			return p.pathParser(eL.Path)
+			path, err := p.pathParser(eL.Path)
+			if err != nil {
+				return nil, err
+			}
+			return pathGetter[K]{
+				getSetter: path,
+			}, nil
 		}
 		if eL.Converter != nil {
 			call, err := p.newFunctionCall(invocation{
@@ -218,6 +314,7 @@ func (p *Parser[K]) newGetter(val value) (Getter[K], error) {
 			}
 			return &exprGetter[K]{
 				expr: call,
+				keys: eL.Converter.Keys,
 			}, nil
 		}
 	}
