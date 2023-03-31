@@ -215,13 +215,14 @@ func (p pathGetter[K]) Set(ctx context.Context, tCtx K, val interface{}) error {
 			} else {
 				v, ok := m.Get(*k.Map)
 				if !ok || v.Type() != pcommon.ValueTypeMap {
-					m = m.PutEmptyMap(*k.Map)
+					t := m.PutEmptyMap(*k.Map)
+					m = t
 				} else {
 					m = v.Map()
 				}
 			}
 		}
-		return p.getSetter.Set(ctx, tCtx, m)
+		return p.getSetter.Set(ctx, tCtx, r)
 	default:
 		return fmt.Errorf("type, %T, does not support string indexing", result)
 	}

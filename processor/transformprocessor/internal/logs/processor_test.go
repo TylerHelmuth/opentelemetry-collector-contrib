@@ -51,6 +51,13 @@ func Test_ProcessLogs_ResourceContext(t *testing.T) {
 			},
 		},
 		{
+			statement: `set(attributes["test"]["value"], "pass")`,
+			want: func(td plog.Logs) {
+				m := td.ResourceLogs().At(0).Resource().Attributes().PutEmptyMap("test")
+				m.PutStr("value", "pass")
+			},
+		},
+		{
 			statement: `set(attributes["test"], "pass") where attributes["host.name"] == "wrong"`,
 			want: func(td plog.Logs) {
 			},

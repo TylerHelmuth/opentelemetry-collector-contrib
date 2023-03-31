@@ -160,7 +160,7 @@ func (p *Parser[K]) buildArg(argVal value, argType reflect.Type) (any, error) {
 		if argVal.Literal == nil || argVal.Literal.Path == nil {
 			return nil, fmt.Errorf("must be a Path")
 		}
-		arg, err := p.pathParser(argVal.Literal.Path)
+		arg, err := p.newGetter(argVal)
 		if err != nil {
 			return nil, err
 		}

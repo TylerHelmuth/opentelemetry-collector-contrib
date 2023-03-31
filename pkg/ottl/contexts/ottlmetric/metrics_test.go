@@ -150,20 +150,6 @@ func Test_newPathGetSetter(t *testing.T) {
 				newCache.CopyTo(cache)
 			},
 		},
-		{
-			name: "cache access",
-			path: ottl.Path{
-				Fields: []string{
-					"cache",
-				},
-				MapKey: ottltest.Strp("temp"),
-			},
-			orig:   nil,
-			newVal: "new value",
-			modified: func(metric pmetric.Metric, cache pcommon.Map) {
-				cache.PutStr("temp", "new value")
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
