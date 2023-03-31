@@ -52,6 +52,13 @@ func Test_ProcessTraces_ResourceContext(t *testing.T) {
 			},
 		},
 		{
+			statement: `set(attributes["test"]["value"], "pass")`,
+			want: func(td ptrace.Traces) {
+				m := td.ResourceSpans().At(0).Resource().Attributes().PutEmptyMap("test")
+				m.PutStr("value", "pass")
+			},
+		},
+		{
 			statement: `set(attributes["test"], "pass") where attributes["host.name"] == "wrong"`,
 			want: func(td ptrace.Traces) {
 			},

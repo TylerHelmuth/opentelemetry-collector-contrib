@@ -210,10 +210,16 @@ func (i *invocation) checkForCustomError() error {
 	return nil
 }
 
+type Key struct {
+	Map   *string `parser:"'[' (@String "`
+	Slice *int64  `parser:"| @Int) ']'"`
+}
+
 // converter represents a converter function call.
 type converter struct {
 	Function  string  `parser:"@(Uppercase(Uppercase | Lowercase)*)"`
 	Arguments []value `parser:"'(' ( @@ ( ',' @@ )* )? ')'"`
+	Keys      []Key   `parser:"( @@ )*"`
 }
 
 // value represents a part of a parsed statement which is resolved to a value of some sort. This can be a telemetry path
@@ -242,7 +248,7 @@ func (v *value) checkForCustomError() error {
 // Path represents telemetry on the underlying signal.  What identifiers are allowed and value is returned is based on the context being used.
 type Path struct {
 	Fields []string `parser:"@Lowercase ( '.' @Lowercase )*"`
-	MapKey *string  `parser:"( '[' @String ']' )?"`
+	Keys   []Key    `parser:"( @@ )*"`
 }
 
 type list struct {

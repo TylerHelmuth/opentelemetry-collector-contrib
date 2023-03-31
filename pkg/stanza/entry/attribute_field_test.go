@@ -168,7 +168,7 @@ func TestAttributeFieldDelete(t *testing.T) {
 			true,
 		},
 		{
-			"MapKey",
+			"Keys",
 			NewAttributeField("map_key"),
 			testMap(),
 			map[string]interface{}{

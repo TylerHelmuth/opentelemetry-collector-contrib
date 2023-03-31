@@ -145,14 +145,14 @@ func parsePath(val *ottl.Path) (ottl.GetSetter[TransformContext], error) {
 func newPathGetSetter(path ottl.Path) (ottl.GetSetter[TransformContext], error) {
 	switch path.Fields[0] {
 	case "cache":
-		if path.MapKey == nil {
+		if path.Keys == nil {
 			return accessCache(), nil
 		}
-		return accessCacheKey(path.MapKey), nil
+		return accessCacheKey(path.Keys), nil
 	case "resource":
-		return ottlcommon.ResourcePathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], MapKey: path.MapKey})
+		return ottlcommon.ResourcePathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], Keys: path.Keys})
 	case "instrumentation_scope":
-		return ottlcommon.ScopePathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], MapKey: path.MapKey})
+		return ottlcommon.ScopePathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], Keys: path.Keys})
 	case "time_unix_nano":
 		return accessTimeUnixNano(), nil
 	case "observed_time_unix_nano":
@@ -164,10 +164,10 @@ func newPathGetSetter(path ottl.Path) (ottl.GetSetter[TransformContext], error) 
 	case "body":
 		return accessBody(), nil
 	case "attributes":
-		if path.MapKey == nil {
+		if path.Keys == nil {
 			return accessAttributes(), nil
 		}
-		return accessAttributesKey(path.MapKey), nil
+		return accessAttributesKey(path.Keys), nil
 	case "dropped_attributes_count":
 		return accessDroppedAttributesCount(), nil
 	case "flags":
@@ -205,14 +205,13 @@ func accessCache() ottl.StandardGetSetter[TransformContext] {
 	}
 }
 
-func accessCacheKey(mapKey *string) ottl.StandardGetSetter[TransformContext] {
+func accessCacheKey(keys []ottl.Key) ottl.StandardGetSetter[TransformContext] {
 	return ottl.StandardGetSetter[TransformContext]{
 		Getter: func(ctx context.Context, tCtx TransformContext) (interface{}, error) {
-			return ottlcommon.GetMapValue(tCtx.getCache(), *mapKey), nil
+			return ottlcommon.GetMapValue(tCtx.getCache(), keys)
 		},
 		Setter: func(ctx context.Context, tCtx TransformContext, val interface{}) error {
-			ottlcommon.SetMapValue(tCtx.getCache(), *mapKey, val)
-			return nil
+			return ottlcommon.SetMapValue(tCtx.getCache(), keys, val)
 		},
 	}
 }
@@ -299,14 +298,13 @@ func accessAttributes() ottl.StandardGetSetter[TransformContext] {
 	}
 }
 
-func accessAttributesKey(mapKey *string) ottl.StandardGetSetter[TransformContext] {
+func accessAttributesKey(keys []ottl.Key) ottl.StandardGetSetter[TransformContext] {
 	return ottl.StandardGetSetter[TransformContext]{
 		Getter: func(ctx context.Context, tCtx TransformContext) (interface{}, error) {
-			return ottlcommon.GetMapValue(tCtx.GetLogRecord().Attributes(), *mapKey), nil
+			return ottlcommon.GetMapValue(tCtx.GetLogRecord().Attributes(), keys)
 		},
 		Setter: func(ctx context.Context, tCtx TransformContext, val interface{}) error {
-			ottlcommon.SetMapValue(tCtx.GetLogRecord().Attributes(), *mapKey, val)
-			return nil
+			return ottlcommon.SetMapValue(tCtx.GetLogRecord().Attributes(), keys, val)
 		},
 	}
 }

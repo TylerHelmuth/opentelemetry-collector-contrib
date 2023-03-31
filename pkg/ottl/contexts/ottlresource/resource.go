@@ -95,10 +95,10 @@ func parsePath(val *ottl.Path) (ottl.GetSetter[TransformContext], error) {
 func newPathGetSetter(path ottl.Path) (ottl.GetSetter[TransformContext], error) {
 	switch path.Fields[0] {
 	case "cache":
-		if path.MapKey == nil {
+		if path.Keys == nil {
 			return accessCache(), nil
 		}
-		return accessCacheKey(path.MapKey), nil
+		return accessCacheKey(path.Keys), nil
 	default:
 		return ottlcommon.ResourcePathGetSetter[TransformContext](path)
 	}
@@ -118,14 +118,13 @@ func accessCache() ottl.StandardGetSetter[TransformContext] {
 	}
 }
 
-func accessCacheKey(mapKey *string) ottl.StandardGetSetter[TransformContext] {
+func accessCacheKey(keys []ottl.Key) ottl.StandardGetSetter[TransformContext] {
 	return ottl.StandardGetSetter[TransformContext]{
 		Getter: func(ctx context.Context, tCtx TransformContext) (interface{}, error) {
-			return ottlcommon.GetMapValue(tCtx.getCache(), *mapKey), nil
+			return ottlcommon.GetMapValue(tCtx.getCache(), keys)
 		},
 		Setter: func(ctx context.Context, tCtx TransformContext, val interface{}) error {
-			ottlcommon.SetMapValue(tCtx.getCache(), *mapKey, val)
-			return nil
+			return ottlcommon.SetMapValue(tCtx.getCache(), keys, val)
 		},
 	}
 }

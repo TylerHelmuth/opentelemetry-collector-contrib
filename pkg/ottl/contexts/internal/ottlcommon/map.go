@@ -15,18 +15,45 @@
 package ottlcommon // import "github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/internal/ottlcommon"
 
 import (
+	"fmt"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
-func GetMapValue(attrs pcommon.Map, mapKey string) interface{} {
-	val, ok := attrs.Get(mapKey)
-	if !ok {
-		return nil
+func GetMapValue(m pcommon.Map, keys []ottl.Key) (interface{}, error) {
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("cannot get map value without key")
 	}
-	return GetValue(val)
+	if keys[0].Map == nil {
+		return nil, fmt.Errorf("non-string indexing is not supported")
+	}
+
+	val, ok := m.Get(*keys[0].Map)
+	if !ok {
+		return nil, nil
+	}
+	for i := 1; i < len(keys); i++ {
+		if keys[i].Map == nil {
+			return nil, fmt.Errorf("non-string indexing is not supported")
+		}
+		switch val.Type() {
+		case pcommon.ValueTypeMap:
+			val, ok = val.Map().Get(*keys[i].Map)
+			if !ok {
+				return nil, fmt.Errorf("key not found in map")
+			}
+		default:
+			return nil, fmt.Errorf("type %v does not support string indexing", val.Type())
+		}
+	}
+	return GetValue(val), nil
 }
 
-func SetMapValue(attrs pcommon.Map, mapKey string, val interface{}) {
+func SetMapValue(m pcommon.Map, keys []ottl.Key, val interface{}) error {
+	if len(keys) == 0 {
+		return fmt.Errorf("cannot set map value without key")
+	}
+
 	var value pcommon.Value
 	switch val.(type) {
 	case []string, []bool, []int64, []float64, [][]byte, []any:
@@ -34,7 +61,24 @@ func SetMapValue(attrs pcommon.Map, mapKey string, val interface{}) {
 	default:
 		value = pcommon.NewValueEmpty()
 	}
-
 	SetValue(value, val)
-	value.CopyTo(attrs.PutEmpty(mapKey))
+
+	currentMap := m
+	lastKeyIndex := len(keys) - 1
+	for i := 0; i < lastKeyIndex; i++ {
+		if keys[i].Map == nil {
+			return fmt.Errorf("non-string indexing is not supported")
+		}
+		v, ok := currentMap.Get(*keys[i].Map)
+		if !ok || v.Type() != pcommon.ValueTypeMap {
+			currentMap = currentMap.PutEmptyMap(*keys[i].Map)
+		} else {
+			currentMap = v.Map()
+		}
+	}
+	if keys[lastKeyIndex].Map == nil {
+		return fmt.Errorf("non-string indexing is not supported")
+	}
+	value.CopyTo(currentMap.PutEmpty(*keys[lastKeyIndex].Map))
+	return nil
 }

@@ -156,7 +156,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"cache",
 				},
-				MapKey: ottltest.Strp("temp"),
+				Keys: ottltest.Strp("temp"),
 			},
 			orig:   nil,
 			newVal: "new value",

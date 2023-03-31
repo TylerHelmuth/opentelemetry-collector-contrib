@@ -88,7 +88,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"cache",
 				},
-				MapKey: ottltest.Strp("temp"),
+				Keys: ottltest.Strp("temp"),
 			},
 			orig:   nil,
 			newVal: "new value",
@@ -169,7 +169,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"trace_state",
 				},
-				MapKey: ottltest.Strp("key1"),
+				Keys: ottltest.Strp("key1"),
 			},
 			orig:   "val1",
 			newVal: "newVal",
@@ -261,7 +261,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("str"),
+				Keys: ottltest.Strp("str"),
 			},
 			orig:   "val",
 			newVal: "newVal",
@@ -275,7 +275,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("bool"),
+				Keys: ottltest.Strp("bool"),
 			},
 			orig:   true,
 			newVal: false,
@@ -289,7 +289,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("int"),
+				Keys: ottltest.Strp("int"),
 			},
 			orig:   int64(10),
 			newVal: int64(20),
@@ -303,7 +303,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("double"),
+				Keys: ottltest.Strp("double"),
 			},
 			orig:   float64(1.2),
 			newVal: float64(2.4),
@@ -317,7 +317,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("bytes"),
+				Keys: ottltest.Strp("bytes"),
 			},
 			orig:   []byte{1, 3, 2},
 			newVal: []byte{2, 3, 4},
@@ -331,7 +331,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("arr_str"),
+				Keys: ottltest.Strp("arr_str"),
 			},
 			orig: func() pcommon.Slice {
 				val, _ := refSpan.Attributes().Get("arr_str")
@@ -348,7 +348,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("arr_bool"),
+				Keys: ottltest.Strp("arr_bool"),
 			},
 			orig: func() pcommon.Slice {
 				val, _ := refSpan.Attributes().Get("arr_bool")
@@ -365,7 +365,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("arr_int"),
+				Keys: ottltest.Strp("arr_int"),
 			},
 			orig: func() pcommon.Slice {
 				val, _ := refSpan.Attributes().Get("arr_int")
@@ -382,7 +382,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("arr_float"),
+				Keys: ottltest.Strp("arr_float"),
 			},
 			orig: func() pcommon.Slice {
 				val, _ := refSpan.Attributes().Get("arr_float")
@@ -399,7 +399,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("arr_bytes"),
+				Keys: ottltest.Strp("arr_bytes"),
 			},
 			orig: func() pcommon.Slice {
 				val, _ := refSpan.Attributes().Get("arr_bytes")
@@ -416,7 +416,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("pMap"),
+				Keys: ottltest.Strp("pMap"),
 			},
 			orig: func() pcommon.Map {
 				val, _ := refSpan.Attributes().Get("pMap")
@@ -435,7 +435,7 @@ func Test_newPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"attributes",
 				},
-				MapKey: ottltest.Strp("map"),
+				Keys: ottltest.Strp("map"),
 			},
 			orig: func() pcommon.Map {
 				val, _ := refSpan.Attributes().Get("map")

@@ -167,7 +167,7 @@ func TestBodyFieldDelete(t *testing.T) {
 			true,
 		},
 		{
-			"MapKey",
+			"Keys",
 			NewBodyField("map_key"),
 			testMap(),
 			map[string]interface{}{

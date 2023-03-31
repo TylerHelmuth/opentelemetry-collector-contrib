@@ -168,7 +168,7 @@ func TestResourceFieldDelete(t *testing.T) {
 			true,
 		},
 		{
-			"MapKey",
+			"Keys",
 			NewResourceField("map_key"),
 			testMap(),
 			map[string]interface{}{

@@ -15,6 +15,7 @@
 package ottlcommon // import "github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl/contexts/internal/ottlcommon"
 
 import (
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
@@ -86,7 +87,7 @@ func SetValue(value pcommon.Value, val interface{}) {
 	case map[string]interface{}:
 		value.SetEmptyMap()
 		for mk, mv := range v {
-			SetMapValue(value.Map(), mk, mv)
+			_ = SetMapValue(value.Map(), []ottl.Key{{Map: &mk}}, mv)
 		}
 	}
 }
