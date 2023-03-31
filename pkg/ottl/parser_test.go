@@ -135,7 +135,11 @@ func Test_parse(t *testing.T) {
 										"foo",
 										"attributes",
 									},
-									MapKey: ottltest.Strp("bar"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("bar"),
+										},
+									},
 								},
 							},
 						},
@@ -161,7 +165,11 @@ func Test_parse(t *testing.T) {
 										"foo",
 										"attributes",
 									},
-									MapKey: ottltest.Strp("bar"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("bar"),
+										},
+									},
 								},
 							},
 						},
@@ -207,7 +215,11 @@ func Test_parse(t *testing.T) {
 										"foo",
 										"attributes",
 									},
-									MapKey: ottltest.Strp("bar"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("bar"),
+										},
+									},
 								},
 							},
 						},
@@ -253,7 +265,11 @@ func Test_parse(t *testing.T) {
 										"foo",
 										"attributes",
 									},
-									MapKey: ottltest.Strp("bar"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("bar"),
+										},
+									},
 								},
 							},
 						},
@@ -349,7 +365,11 @@ func Test_parse(t *testing.T) {
 									Fields: []string{
 										"attributes",
 									},
-									MapKey: ottltest.Strp("bytes"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("bytes"),
+										},
+									},
 								},
 							},
 						},
@@ -374,7 +394,11 @@ func Test_parse(t *testing.T) {
 									Fields: []string{
 										"attributes",
 									},
-									MapKey: ottltest.Strp("test"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("test"),
+										},
+									},
 								},
 							},
 						},
@@ -399,7 +423,11 @@ func Test_parse(t *testing.T) {
 									Fields: []string{
 										"attributes",
 									},
-									MapKey: ottltest.Strp("test"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("test"),
+										},
+									},
 								},
 							},
 						},
@@ -424,7 +452,11 @@ func Test_parse(t *testing.T) {
 									Fields: []string{
 										"attributes",
 									},
-									MapKey: ottltest.Strp("test"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("test"),
+										},
+									},
 								},
 							},
 						},
@@ -451,7 +483,11 @@ func Test_parse(t *testing.T) {
 									Fields: []string{
 										"attributes",
 									},
-									MapKey: ottltest.Strp("test"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("test"),
+										},
+									},
 								},
 							},
 						},
@@ -482,7 +518,11 @@ func Test_parse(t *testing.T) {
 									Fields: []string{
 										"attributes",
 									},
-									MapKey: ottltest.Strp("test"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("test"),
+										},
+									},
 								},
 							},
 						},
@@ -516,7 +556,11 @@ func Test_parse(t *testing.T) {
 									Fields: []string{
 										"attributes",
 									},
-									MapKey: ottltest.Strp("test"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("test"),
+										},
+									},
 								},
 							},
 						},
@@ -575,7 +619,11 @@ func Test_parse(t *testing.T) {
 												Fields: []string{
 													"attributes",
 												},
-												MapKey: ottltest.Strp("test"),
+												Keys: []Key{
+													{
+														Map: ottltest.Strp("test"),
+													},
+												},
 											},
 										},
 									},
@@ -600,7 +648,11 @@ func Test_parse(t *testing.T) {
 									Fields: []string{
 										"attributes",
 									},
-									MapKey: ottltest.Strp("test"),
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("test"),
+										},
+									},
 								},
 							},
 						},
@@ -698,6 +750,102 @@ func Test_parse(t *testing.T) {
 						},
 					},
 				},
+			},
+		}, {
+			name:      "multiple keys on a path",
+			statement: `set(attributes["foo"]["bar"][0], "pass")`,
+			expected: &parsedStatement{
+				Invocation: invocation{
+					Function: "set",
+					Arguments: []value{
+						{
+							Literal: &mathExprLiteral{
+								Path: &Path{
+									Fields: []string{
+										"attributes",
+									},
+									Keys: []Key{
+										{
+											Map: ottltest.Strp("foo"),
+										},
+										{
+											Map: ottltest.Strp("bar"),
+										},
+										{
+											Slice: ottltest.Intp(int64(0)),
+										},
+									},
+								},
+							},
+						},
+						{
+							String: ottltest.Strp("pass"),
+						},
+					},
+				},
+				WhereClause: nil,
+			},
+		},
+		{
+			name:      "keys on a converter",
+			statement: `set(test, Complex(["0","1"], Split()[0])[0]["key"])`,
+			expected: &parsedStatement{
+				Invocation: invocation{
+					Function: "set",
+					Arguments: []value{
+						{
+							Literal: &mathExprLiteral{
+								Path: &Path{
+									Fields: []string{
+										"test",
+									},
+								},
+							},
+						},
+						{
+							Literal: &mathExprLiteral{
+								Converter: &converter{
+									Function: "Complex",
+									Arguments: []value{
+										{
+											List: &list{
+												Values: []value{
+													{
+														String: ottltest.Strp("0"),
+													},
+													{
+														String: ottltest.Strp("1"),
+													},
+												},
+											},
+										},
+										{
+											Literal: &mathExprLiteral{
+												Converter: &converter{
+													Function: "Split",
+													Keys: []Key{
+														{
+															Slice: ottltest.Intp(int64(0)),
+														},
+													},
+												},
+											},
+										},
+									},
+									Keys: []Key{
+										{
+											Slice: ottltest.Intp(int64(0)),
+										},
+										{
+											Map: ottltest.Strp("key"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				WhereClause: nil,
 			},
 		},
 	}

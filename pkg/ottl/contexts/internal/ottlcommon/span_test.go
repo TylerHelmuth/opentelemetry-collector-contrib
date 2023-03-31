@@ -17,6 +17,7 @@ package ottlcommon
 import (
 	"context"
 	"encoding/hex"
+	"go.opentelemetry.io/otel/trace"
 	"testing"
 	"time"
 
@@ -37,6 +38,9 @@ var (
 
 func TestSpanPathGetSetter(t *testing.T) {
 	refSpan := createSpan()
+
+	refTraceState, _ := trace.ParseTraceState(refSpan.TraceState().AsRaw())
+	newTraceState, _ := trace.ParseTraceState("key1=newVal,key2=val2")
 
 	newAttrs := pcommon.NewMap()
 	newAttrs.PutStr("hello", "world")
@@ -130,10 +134,14 @@ func TestSpanPathGetSetter(t *testing.T) {
 				Fields: []string{
 					"trace_state",
 				},
-				MapKey: ottltest.Strp("key1"),
+				Keys: []ottl.Key{
+					{
+						Map: ottltest.Strp("key1"),
+					},
+				},
 			},
-			orig:   "val1",
-			newVal: "newVal",
+			orig:   refTraceState,
+			newVal: newTraceState,
 			modified: func(span ptrace.Span) {
 				span.TraceState().FromRaw("key1=newVal,key2=val2")
 			},
@@ -228,178 +236,6 @@ func TestSpanPathGetSetter(t *testing.T) {
 			newVal: newAttrs,
 			modified: func(span ptrace.Span) {
 				newAttrs.CopyTo(span.Attributes())
-			},
-		},
-		{
-			name: "attributes string",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("str"),
-			},
-			orig:   "val",
-			newVal: "newVal",
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutStr("str", "newVal")
-			},
-		},
-		{
-			name: "attributes bool",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("bool"),
-			},
-			orig:   true,
-			newVal: false,
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutBool("bool", false)
-			},
-		},
-		{
-			name: "attributes int",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("int"),
-			},
-			orig:   int64(10),
-			newVal: int64(20),
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutInt("int", 20)
-			},
-		},
-		{
-			name: "attributes float",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("double"),
-			},
-			orig:   float64(1.2),
-			newVal: float64(2.4),
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutDouble("double", 2.4)
-			},
-		},
-		{
-			name: "attributes bytes",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("bytes"),
-			},
-			orig:   []byte{1, 3, 2},
-			newVal: []byte{2, 3, 4},
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutEmptyBytes("bytes").FromRaw([]byte{2, 3, 4})
-			},
-		},
-		{
-			name: "attributes array empty",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("arr_empty"),
-			},
-			orig: func() pcommon.Slice {
-				val, _ := refSpan.Attributes().Get("arr_empty")
-				return val.Slice()
-			}(),
-			newVal: []any{},
-			modified: func(span ptrace.Span) {
-				// no-op
-			},
-		},
-		{
-			name: "attributes array string",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("arr_str"),
-			},
-			orig: func() pcommon.Slice {
-				val, _ := refSpan.Attributes().Get("arr_str")
-				return val.Slice()
-			}(),
-			newVal: []string{"new"},
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutEmptySlice("arr_str").AppendEmpty().SetStr("new")
-			},
-		},
-		{
-			name: "attributes array bool",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("arr_bool"),
-			},
-			orig: func() pcommon.Slice {
-				val, _ := refSpan.Attributes().Get("arr_bool")
-				return val.Slice()
-			}(),
-			newVal: []bool{false},
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutEmptySlice("arr_bool").AppendEmpty().SetBool(false)
-			},
-		},
-		{
-			name: "attributes array int",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("arr_int"),
-			},
-			orig: func() pcommon.Slice {
-				val, _ := refSpan.Attributes().Get("arr_int")
-				return val.Slice()
-			}(),
-			newVal: []int64{20},
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutEmptySlice("arr_int").AppendEmpty().SetInt(20)
-			},
-		},
-		{
-			name: "attributes array float",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("arr_float"),
-			},
-			orig: func() pcommon.Slice {
-				val, _ := refSpan.Attributes().Get("arr_float")
-				return val.Slice()
-			}(),
-			newVal: []float64{2.0},
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutEmptySlice("arr_float").AppendEmpty().SetDouble(2.0)
-			},
-		},
-		{
-			name: "attributes array bytes",
-			path: ottl.Path{
-				Fields: []string{
-					"attributes",
-				},
-				MapKey: ottltest.Strp("arr_bytes"),
-			},
-			orig: func() pcommon.Slice {
-				val, _ := refSpan.Attributes().Get("arr_bytes")
-				return val.Slice()
-			}(),
-			newVal: [][]byte{{9, 6, 4}},
-			modified: func(span ptrace.Span) {
-				span.Attributes().PutEmptySlice("arr_bytes").AppendEmpty().SetEmptyBytes().FromRaw([]byte{9, 6, 4})
 			},
 		},
 		{

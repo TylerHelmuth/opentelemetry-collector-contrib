@@ -95,10 +95,7 @@ func parsePath(val *ottl.Path) (ottl.GetSetter[TransformContext], error) {
 func newPathGetSetter(path ottl.Path) (ottl.GetSetter[TransformContext], error) {
 	switch path.Fields[0] {
 	case "cache":
-		if path.MapKey == nil {
-			return accessCache(), nil
-		}
-		return accessCacheKey(path.MapKey), nil
+		return accessCache(), nil
 	default:
 		return ottlcommon.ResourcePathGetSetter[TransformContext](path)
 	}

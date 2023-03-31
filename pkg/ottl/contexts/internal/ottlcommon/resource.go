@@ -33,10 +33,7 @@ func ResourcePathGetSetter[K ResourceContext](path ottl.Path) (ottl.GetSetter[K]
 	}
 	switch path.Fields[0] {
 	case "attributes":
-		if path.MapKey == nil {
-			return accessResourceAttributes[K](), nil
-		}
-		return accessResourceAttributesKey[K](path.MapKey), nil
+		return accessResourceAttributes[K](), nil
 	case "dropped_attributes_count":
 		return accessResourceDroppedAttributesCount[K](), nil
 	}
@@ -67,18 +64,6 @@ func accessResourceAttributes[K ResourceContext]() ottl.StandardGetSetter[K] {
 			if attrs, ok := val.(pcommon.Map); ok {
 				attrs.CopyTo(tCtx.GetResource().Attributes())
 			}
-			return nil
-		},
-	}
-}
-
-func accessResourceAttributesKey[K ResourceContext](mapKey *string) ottl.StandardGetSetter[K] {
-	return ottl.StandardGetSetter[K]{
-		Getter: func(ctx context.Context, tCtx K) (interface{}, error) {
-			return GetMapValue(tCtx.GetResource().Attributes(), *mapKey), nil
-		},
-		Setter: func(ctx context.Context, tCtx K, val interface{}) error {
-			SetMapValue(tCtx.GetResource().Attributes(), *mapKey, val)
 			return nil
 		},
 	}

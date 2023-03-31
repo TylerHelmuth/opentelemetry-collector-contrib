@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"go.opentelemetry.io/otel/trace"
 
 	jsoniter "github.com/json-iterator/go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -69,7 +70,7 @@ func (l literal[K]) Get(context.Context, K) (interface{}, error) {
 
 type pathGetter[K any] struct {
 	getSetter GetSetter[K]
-	keys      []key
+	keys      []Key
 }
 
 func (p pathGetter[K]) Get(ctx context.Context, tCtx K) (interface{}, error) {
@@ -77,7 +78,7 @@ func (p pathGetter[K]) Get(ctx context.Context, tCtx K) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p.keys != nil {
+	if len(p.keys) != 0 {
 		for _, k := range p.keys {
 			if k.Map != nil {
 				var ok bool
@@ -92,6 +93,8 @@ func (p pathGetter[K]) Get(ctx context.Context, tCtx K) (interface{}, error) {
 					if !ok {
 						return nil, fmt.Errorf("key not found in map")
 					}
+				case trace.TraceState:
+					result = r.Get(*k.Map)
 				default:
 					return nil, fmt.Errorf("type, %T, does not support string indexing", result)
 				}
@@ -110,15 +113,123 @@ func (p pathGetter[K]) Get(ctx context.Context, tCtx K) (interface{}, error) {
 				default:
 					return nil, fmt.Errorf("type, %T, does not support int indexing", result)
 				}
+			} else {
+				return nil, fmt.Errorf("neither map nor slice index were set; this is an error in OTTL")
 			}
 		}
 	}
 	return result, nil
 }
 
+func setMapValue(attrs pcommon.Map, mapKey string, val interface{}) {
+	var v pcommon.Value
+	switch val.(type) {
+	case []string, []bool, []int64, []float64, [][]byte, []any:
+		v = pcommon.NewValueSlice()
+	default:
+		v = pcommon.NewValueEmpty()
+	}
+
+	setValue(v, val)
+	v.CopyTo(attrs.PutEmpty(mapKey))
+}
+
+func setValue(value pcommon.Value, val interface{}) {
+	switch v := val.(type) {
+	case string:
+		value.SetStr(v)
+	case bool:
+		value.SetBool(v)
+	case int64:
+		value.SetInt(v)
+	case float64:
+		value.SetDouble(v)
+	case []byte:
+		value.SetEmptyBytes().FromRaw(v)
+	case []string:
+		value.SetEmptySlice().EnsureCapacity(len(v))
+		for _, str := range v {
+			value.Slice().AppendEmpty().SetStr(str)
+		}
+	case []bool:
+		value.SetEmptySlice().EnsureCapacity(len(v))
+		for _, b := range v {
+			value.Slice().AppendEmpty().SetBool(b)
+		}
+	case []int64:
+		value.SetEmptySlice().EnsureCapacity(len(v))
+		for _, i := range v {
+			value.Slice().AppendEmpty().SetInt(i)
+		}
+	case []float64:
+		value.SetEmptySlice().EnsureCapacity(len(v))
+		for _, f := range v {
+			value.Slice().AppendEmpty().SetDouble(f)
+		}
+	case [][]byte:
+		value.SetEmptySlice().EnsureCapacity(len(v))
+		for _, b := range v {
+			value.Slice().AppendEmpty().SetEmptyBytes().FromRaw(b)
+		}
+	case []any:
+		value.SetEmptySlice().EnsureCapacity(len(v))
+		for _, a := range v {
+			pval := value.Slice().AppendEmpty()
+			setValue(pval, a)
+		}
+	case pcommon.Map:
+		v.CopyTo(value.SetEmptyMap())
+	case map[string]interface{}:
+		value.SetEmptyMap()
+		for mk, mv := range v {
+			setMapValue(value.Map(), mk, mv)
+		}
+	}
+}
+
+func (p pathGetter[K]) Set(ctx context.Context, tCtx K, val interface{}) error {
+	if len(p.keys) == 0 {
+		return p.getSetter.Set(ctx, tCtx, val)
+	}
+
+	result, err := p.getSetter.Get(ctx, tCtx)
+	if err != nil {
+		return err
+	}
+
+	switch r := result.(type) {
+	case pcommon.Map:
+		if len(p.keys) == 1 {
+			if p.keys[0].Map == nil {
+				return fmt.Errorf("type %T only supports indexing by string", r)
+			}
+			setMapValue(r, *p.keys[0].Map, val)
+		}
+		m := r
+		for i, k := range p.keys {
+			if k.Map == nil {
+				return fmt.Errorf("type %T only supports indexing by string", r)
+			}
+			if i == len(p.keys)-1 {
+				setMapValue(m, *k.Map, val)
+			} else {
+				v, ok := m.Get(*k.Map)
+				if !ok || v.Type() != pcommon.ValueTypeMap {
+					m = m.PutEmptyMap(*k.Map)
+				} else {
+					m = v.Map()
+				}
+			}
+		}
+		return p.getSetter.Set(ctx, tCtx, m)
+	default:
+		return fmt.Errorf("type, %T, does not support string indexing", result)
+	}
+}
+
 type exprGetter[K any] struct {
 	expr Expr[K]
-	keys []key
+	keys []Key
 }
 
 func (g exprGetter[K]) Get(ctx context.Context, tCtx K) (interface{}, error) {
@@ -159,6 +270,8 @@ func (g exprGetter[K]) Get(ctx context.Context, tCtx K) (interface{}, error) {
 				default:
 					return nil, fmt.Errorf("type, %T, does not support int indexing", result)
 				}
+			} else {
+				return nil, fmt.Errorf("neither map nor slice index were set; this is an error in OTTL")
 			}
 		}
 	}
@@ -302,6 +415,7 @@ func (p *Parser[K]) newGetter(val value) (Getter[K], error) {
 			}
 			return pathGetter[K]{
 				getSetter: path,
+				keys:      eL.Path.Keys,
 			}, nil
 		}
 		if eL.Converter != nil {

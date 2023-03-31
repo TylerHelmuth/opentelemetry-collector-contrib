@@ -152,6 +152,33 @@ func Test_lexer(t *testing.T) {
 			{"OpMultDiv", "*"},
 			{"Float", "2.9"},
 		}},
+		{"complex_ident_expr", `set(attributes["json"]["test"], "pass")`, false, []result{
+			{"Lowercase", "set"},
+			{"LParen", "("},
+			{"Lowercase", "attributes"},
+			{"Punct", "["},
+			{"String", `"json"`},
+			{"Punct", "]"},
+			{"Punct", "["},
+			{"String", `"test"`},
+			{"Punct", "]"},
+			{"Punct", ","},
+			{"String", `"pass"`},
+			{"RParen", ")"},
+		}},
+		{"complex_converter_expr", `set(test, A()[0])`, false, []result{
+			{"Lowercase", "set"},
+			{"LParen", "("},
+			{"Lowercase", "test"},
+			{"Punct", ","},
+			{"Uppercase", "A"},
+			{"LParen", "("},
+			{"RParen", ")"},
+			{"Punct", "["},
+			{"Int", "0"},
+			{"Punct", "]"},
+			{"RParen", ")"},
+		}},
 	}
 
 	for _, tt := range tests {

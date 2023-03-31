@@ -123,25 +123,19 @@ func parsePath(val *ottl.Path) (ottl.GetSetter[TransformContext], error) {
 func newPathGetSetter(path ottl.Path) (ottl.GetSetter[TransformContext], error) {
 	switch path.Fields[0] {
 	case "cache":
-		if path.MapKey == nil {
-			return accessCache(), nil
-		}
-		return accessCacheKey(path.MapKey), nil
+		return accessCache(), nil
 	case "resource":
-		return ottlcommon.ResourcePathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], MapKey: path.MapKey})
+		return ottlcommon.ResourcePathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], Keys: path.Keys})
 	case "instrumentation_scope":
-		return ottlcommon.ScopePathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], MapKey: path.MapKey})
+		return ottlcommon.ScopePathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], Keys: path.Keys})
 	case "span":
-		return ottlcommon.SpanPathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], MapKey: path.MapKey})
+		return ottlcommon.SpanPathGetSetter[TransformContext](ottl.Path{Fields: path.Fields[1:], Keys: path.Keys})
 	case "time_unix_nano":
 		return accessSpanEventTimeUnixNano(), nil
 	case "name":
 		return accessSpanEventName(), nil
 	case "attributes":
-		if path.MapKey == nil {
-			return accessSpanEventAttributes(), nil
-		}
-		return accessSpanEventAttributesKey(path.MapKey), nil
+		return accessSpanEventAttributes(), nil
 	case "dropped_attributes_count":
 		return accessSpanEventDroppedAttributeCount(), nil
 	}
@@ -158,18 +152,6 @@ func accessCache() ottl.StandardGetSetter[TransformContext] {
 			if m, ok := val.(pcommon.Map); ok {
 				m.CopyTo(tCtx.getCache())
 			}
-			return nil
-		},
-	}
-}
-
-func accessCacheKey(mapKey *string) ottl.StandardGetSetter[TransformContext] {
-	return ottl.StandardGetSetter[TransformContext]{
-		Getter: func(ctx context.Context, tCtx TransformContext) (interface{}, error) {
-			return ottlcommon.GetMapValue(tCtx.getCache(), *mapKey), nil
-		},
-		Setter: func(ctx context.Context, tCtx TransformContext, val interface{}) error {
-			ottlcommon.SetMapValue(tCtx.getCache(), *mapKey, val)
 			return nil
 		},
 	}
@@ -212,18 +194,6 @@ func accessSpanEventAttributes() ottl.StandardGetSetter[TransformContext] {
 			if attrs, ok := val.(pcommon.Map); ok {
 				attrs.CopyTo(tCtx.GetSpanEvent().Attributes())
 			}
-			return nil
-		},
-	}
-}
-
-func accessSpanEventAttributesKey(mapKey *string) ottl.StandardGetSetter[TransformContext] {
-	return ottl.StandardGetSetter[TransformContext]{
-		Getter: func(ctx context.Context, tCtx TransformContext) (interface{}, error) {
-			return ottlcommon.GetMapValue(tCtx.GetSpanEvent().Attributes(), *mapKey), nil
-		},
-		Setter: func(ctx context.Context, tCtx TransformContext, val interface{}) error {
-			ottlcommon.SetMapValue(tCtx.GetSpanEvent().Attributes(), *mapKey, val)
 			return nil
 		},
 	}
