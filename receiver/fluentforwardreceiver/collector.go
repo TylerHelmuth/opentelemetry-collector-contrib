@@ -17,13 +17,10 @@ package fluentforwardreceiver // import "github.com/open-telemetry/opentelemetry
 import (
 	"context"
 
-	"go.opencensus.io/stats"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/obsreport"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.uber.org/zap"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/fluentforwardreceiver/observ"
 )
 
 // Collector acts as an aggregator of LogRecords so that we don't have to
@@ -65,10 +62,10 @@ func (c *Collector) processEvents(ctx context.Context) {
 			// efficiency on LogResource allocations.
 			c.fillBufferUntilChanEmpty(logSlice)
 
-			stats.Record(context.Background(), observ.RecordsGenerated.M(int64(out.LogRecordCount())))
-			ctx = c.obsrecv.StartLogsOp(ctx)
-			err := c.nextConsumer.ConsumeLogs(ctx, out)
-			c.obsrecv.EndLogsOp(ctx, "fluent", out.LogRecordCount(), err)
+			//stats.Record(context.Background(), observ.RecordsGenerated.M(int64(out.LogRecordCount())))
+			//ctx = c.obsrecv.StartLogsOp(ctx)
+			_ = c.nextConsumer.ConsumeLogs(ctx, out)
+			//c.obsrecv.EndLogsOp(ctx, "fluent", out.LogRecordCount(), err)
 		}
 	}
 }
