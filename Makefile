@@ -70,7 +70,7 @@ all-common:
 	@$(MAKE) $(FOR_GROUP_TARGET) TARGET="common"
 
 .PHONY: e2e-test
-e2e-test: otelcontribcol oteltestbedcol
+e2e-test: oteltestbedcol
 	$(MAKE) -C testbed run-tests
 
 .PHONY: unit-tests-with-cover
