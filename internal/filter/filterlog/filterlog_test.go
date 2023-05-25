@@ -235,3 +235,68 @@ func TestLogRecord_Matching_True(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkFilterlog_NewSkipExpr(b *testing.B) {
+	testCases := []struct {
+		name string
+		mc   *filterconfig.MatchConfig
+		skip bool
+	}{
+		{
+			name: "body_match_regexp",
+			mc: &filterconfig.MatchConfig{
+				Include: &filterconfig.MatchProperties{
+					Config:    *createConfig(filterset.Regexp),
+					LogBodies: []string{"body"},
+				},
+			},
+			skip: false,
+		},
+		{
+			name: "body_match_static",
+			mc: &filterconfig.MatchConfig{
+				Include: &filterconfig.MatchProperties{
+					Config:   *createConfig(filterset.Strict),
+					Services: []string{"body"},
+				},
+			},
+			skip: false,
+		},
+		{
+			name: "severity_number_match",
+			mc: &filterconfig.MatchConfig{
+				Include: &filterconfig.MatchProperties{
+					LogSeverityNumber: &filterconfig.LogSeverityNumberMatchProperties{
+						Min:            plog.SeverityNumberInfo,
+						MatchUndefined: true,
+					},
+				},
+			},
+			skip: false,
+		},
+	}
+
+	for _, tt := range testCases {
+		skipExpr, err := NewSkipExpr(tt.mc)
+		assert.NoError(b, err)
+
+		log := plog.NewLogRecord()
+		log.Body().SetStr("body")
+		log.SetSeverityNumber(plog.SeverityNumberUnspecified)
+
+		resource := pcommon.NewResource()
+
+		scope := pcommon.NewInstrumentationScope()
+
+		tCtx := ottllog.NewTransformContext(log, scope, resource)
+
+		b.Run(tt.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				var skip bool
+				skip, err = skipExpr.Eval(context.Background(), tCtx)
+				assert.NoError(b, err)
+				assert.Equal(b, tt.skip, skip)
+			}
+		})
+	}
+}
