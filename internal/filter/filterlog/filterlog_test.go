@@ -266,6 +266,7 @@ func BenchmarkFilterlog_NewSkipExpr(b *testing.B) {
 			name: "severity_number_match",
 			mc: &filterconfig.MatchConfig{
 				Include: &filterconfig.MatchProperties{
+					Config: *createConfig(filterset.Regexp),
 					LogSeverityNumber: &filterconfig.LogSeverityNumberMatchProperties{
 						Min:            plog.SeverityNumberInfo,
 						MatchUndefined: true,
