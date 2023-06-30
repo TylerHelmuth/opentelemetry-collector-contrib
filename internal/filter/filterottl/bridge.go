@@ -5,7 +5,6 @@ package filterottl // import "github.com/open-telemetry/opentelemetry-collector-
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"strings"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/expr"
@@ -130,8 +129,6 @@ func NewSpanSkipExprBridge(mc *filterconfig.MatchConfig, settings component.Tele
 		}
 		statements = append(statements, fmt.Sprintf("%v", statement))
 	}
-
-	settings.Logger.Info("Your configuration is using an old style of configuration", zap.Any("statements", statements))
 
 	return NewBoolExprForSpan(statements, StandardSpanFuncs(), ottl.PropagateError, settings)
 }

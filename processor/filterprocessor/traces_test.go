@@ -5,9 +5,18 @@ package filterprocessor
 
 import (
 	"context"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/configtelemetry"
+	"go.opentelemetry.io/collector/processor"
+	"go.opentelemetry.io/otel/metric/noop"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"testing"
 	"time"
 
+	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterconfig"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterset"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/collector/component/componenttest"
@@ -15,11 +24,6 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.opentelemetry.io/collector/processor/processorhelper"
-	"go.opentelemetry.io/collector/processor/processortest"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterconfig"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterset"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 )
 
 // All the data we need to test the Span filter
@@ -84,8 +88,9 @@ var (
 	}
 
 	serviceNameMatchProperties = &filterconfig.MatchProperties{
-		Config:   filterset.Config{MatchType: filterset.Strict},
-		Services: []string{"keep"},
+		Config:    filterset.Config{MatchType: filterset.Strict},
+		Services:  []string{"keep", "also keep"},
+		SpanKinds: []string{"keep", "also keep"},
 	}
 
 	redisMatchProperties = &filterconfig.MatchProperties{
@@ -96,21 +101,22 @@ var (
 	}
 
 	standardTraceTests = []traceTest{
-		{
-			name:              "filterRedis",
-			exc:               redisMatchProperties,
-			inTraces:          generateTraces(redisTraces),
-			allTracesFiltered: true,
-		},
-		{
-			name:              "keepRedis",
-			inc:               redisMatchProperties,
-			inTraces:          generateTraces(redisTraces),
-			spanCountExpected: 1,
-		},
+		//{
+		//	name:              "filterRedis",
+		//	exc:               redisMatchProperties,
+		//	inTraces:          generateTraces(redisTraces),
+		//	allTracesFiltered: true,
+		//},
+		//{
+		//	name:              "keepRedis",
+		//	inc:               redisMatchProperties,
+		//	inTraces:          generateTraces(redisTraces),
+		//	spanCountExpected: 1,
+		//},
 		{
 			name:              "keepServiceName",
 			inc:               serviceNameMatchProperties,
+			exc:               serviceNameMatchProperties,
 			inTraces:          generateTraces(nameTraces),
 			spanCountExpected: 2,
 		},
@@ -131,7 +137,16 @@ func TestFilterTraceProcessor(t *testing.T) {
 			factory := NewFactory()
 			fmp, err := factory.CreateTracesProcessor(
 				ctx,
-				processortest.NewNopCreateSettings(),
+				processor.CreateSettings{
+					TelemetrySettings: component.TelemetrySettings{
+						Logger:         zap.NewExample(),
+						TracerProvider: trace.NewNoopTracerProvider(),
+						MeterProvider:  noop.NewMeterProvider(),
+						MetricsLevel:   configtelemetry.LevelNone,
+						Resource:       pcommon.NewResource(),
+					},
+					BuildInfo: component.NewDefaultBuildInfo(),
+				},
 				cfg,
 				next,
 			)

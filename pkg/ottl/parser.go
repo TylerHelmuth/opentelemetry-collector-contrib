@@ -65,6 +65,10 @@ func (s *Statement[K]) Execute(ctx context.Context, tCtx K) (any, bool, error) {
 	return result, condition, nil
 }
 
+func (s *Statement[K]) String() string {
+	return s.origText
+}
+
 func NewParser[K any](
 	functions map[string]Factory[K],
 	pathParser PathExpressionParser[K],
@@ -221,4 +225,12 @@ func (s *Statements[K]) Eval(ctx context.Context, tCtx K) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (s *Statements[K]) String() string {
+	strs := make([]string, len(s.statements))
+	for i, statement := range s.statements {
+		strs[i] = statement.String()
+	}
+	return strings.Join(strs, ", ")
 }

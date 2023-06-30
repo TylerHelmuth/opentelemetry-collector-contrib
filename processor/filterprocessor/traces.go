@@ -5,6 +5,8 @@ package filterprocessor // import "github.com/open-telemetry/opentelemetry-colle
 
 import (
 	"context"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
+	"strings"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -47,6 +49,10 @@ func newFilterSpansProcessor(set component.TelemetrySettings, cfg *Config) (*fil
 	}
 
 	fsp.skipSpanExpr, err = filterspan.NewSkipExpr(&cfg.Spans, set)
+	if t, ok := fsp.skipSpanExpr.(*ottl.Statements[ottlspan.TransformContext]); ok {
+		set.Logger.Info("You are using an outdated configuration format.  Please use the traces.span configuration option with the attached statements.", zap.String("statements", strings.ReplaceAll(t.String(), "drop() where ", "")))
+	}
+
 	if err != nil {
 		return nil, err
 	}
