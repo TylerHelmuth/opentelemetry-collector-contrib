@@ -54,12 +54,12 @@ func newFilterMetricProcessor(set component.TelemetrySettings, cfg *Config) (*fi
 		return fsp, nil
 	}
 
-	fsp.skipResourceExpr, err = newSkipResExpr(cfg.Metrics.Include, cfg.Metrics.Exclude)
+	fsp.skipResourceExpr, err = newSkipResExpr(cfg.Metrics.Include, cfg.Metrics.Exclude, set)
 	if err != nil {
 		return nil, err
 	}
 
-	fsp.skipMetricExpr, err = filtermetric.NewSkipExpr(cfg.Metrics.Include, cfg.Metrics.Exclude)
+	fsp.skipMetricExpr, err = filtermetric.NewSkipExpr(cfg.Metrics.Include, cfg.Metrics.Exclude, set)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (fmp *filterMetricProcessor) processMetrics(ctx context.Context, md pmetric
 	return md, nil
 }
 
-func newSkipResExpr(include *filterconfig.MetricMatchProperties, exclude *filterconfig.MetricMatchProperties) (expr.BoolExpr[ottlresource.TransformContext], error) {
+func newSkipResExpr(include *filterconfig.MetricMatchProperties, exclude *filterconfig.MetricMatchProperties, settings component.TelemetrySettings) (expr.BoolExpr[ottlresource.TransformContext], error) {
 	if filtermetric.UseOTTLBridge.IsEnabled() {
 		mp := filterconfig.MatchConfig{}
 
@@ -194,7 +194,7 @@ func newSkipResExpr(include *filterconfig.MetricMatchProperties, exclude *filter
 			}
 		}
 
-		return filterottl.NewResourceSkipExprBridge(&mp)
+		return filterottl.NewResourceSkipExprBridge(&mp, settings)
 	}
 
 	var matchers []expr.BoolExpr[ottlresource.TransformContext]

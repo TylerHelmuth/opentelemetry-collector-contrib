@@ -47,7 +47,7 @@ func createTracesProcessor(
 	if err != nil {
 		return nil, err
 	}
-	skipExpr, err := filterspan.NewSkipExpr(&oCfg.MatchConfig)
+	skipExpr, err := filterspan.NewSkipExpr(&oCfg.MatchConfig, set.TelemetrySettings)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func createLogsProcessor(
 		return nil, err
 	}
 
-	skipExpr, err := filterlog.NewSkipExpr(&oCfg.MatchConfig)
+	skipExpr, err := filterlog.NewSkipExpr(&oCfg.MatchConfig, set.TelemetrySettings)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +102,7 @@ func createMetricsProcessor(
 	skipExpr, err := filtermetric.NewSkipExpr(
 		filterconfig.CreateMetricMatchPropertiesFromDefault(oCfg.Include),
 		filterconfig.CreateMetricMatchPropertiesFromDefault(oCfg.Exclude),
+		set.TelemetrySettings,
 	)
 	if err != nil {
 		return nil, err

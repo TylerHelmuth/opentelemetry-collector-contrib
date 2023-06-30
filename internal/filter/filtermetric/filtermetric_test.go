@@ -10,8 +10,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterconfig"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterottl"
@@ -190,12 +192,14 @@ func Test_NewSkipExpr_With_Bridge(t *testing.T) {
 
 			tCtx := ottlmetric.NewTransformContext(metric, scope, resource)
 
-			boolExpr, err := NewSkipExpr(tt.include, tt.exclude)
+			settings := component.TelemetrySettings{Logger: zap.NewNop()}
+
+			boolExpr, err := NewSkipExpr(tt.include, tt.exclude, settings)
 			require.NoError(t, err)
 			expectedResult, err := boolExpr.Eval(context.Background(), tCtx)
 			assert.NoError(t, err)
 
-			ottlBoolExpr, err := filterottl.NewMetricSkipExprBridge(tt.include, tt.exclude)
+			ottlBoolExpr, err := filterottl.NewMetricSkipExprBridge(tt.include, tt.exclude, settings)
 
 			if tt.err != nil {
 				assert.Equal(t, tt.err, err)

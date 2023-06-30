@@ -9,10 +9,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/featuregate"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	conventions "go.opentelemetry.io/collector/semconv/v1.6.1"
+	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/testdata"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/traceutil"
@@ -1213,12 +1215,16 @@ func Test_NewSkipExpr_With_Bridge(t *testing.T) {
 
 			tCtx := ottlspan.NewTransformContext(span, scope, resource)
 
-			boolExpr, err := NewSkipExpr(tt.condition)
+			logger := zap.NewExample()
+			defer logger.Sync()
+			settings := component.TelemetrySettings{Logger: logger}
+
+			boolExpr, err := NewSkipExpr(tt.condition, settings)
 			require.NoError(t, err)
 			expectedResult, err := boolExpr.Eval(context.Background(), tCtx)
 			assert.NoError(t, err)
 
-			ottlBoolExpr, err := filterottl.NewSpanSkipExprBridge(tt.condition)
+			ottlBoolExpr, err := filterottl.NewSpanSkipExprBridge(tt.condition, settings)
 			assert.NoError(t, err)
 			ottlResult, err := ottlBoolExpr.Eval(context.Background(), tCtx)
 			assert.NoError(t, err)
@@ -1261,7 +1267,7 @@ func BenchmarkFilterspan_NewSkipExpr(b *testing.B) {
 		err := featuregate.GlobalRegistry().Set("filter.filterspan.useOTTLBridge", true)
 		assert.NoError(b, err)
 
-		skipExpr, err := NewSkipExpr(tt.mc)
+		skipExpr, err := NewSkipExpr(tt.mc, component.TelemetrySettings{Logger: zap.NewNop()})
 		assert.NoError(b, err)
 
 		span := ptrace.NewSpan()

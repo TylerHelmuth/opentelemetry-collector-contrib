@@ -46,7 +46,7 @@ func newFilterSpansProcessor(set component.TelemetrySettings, cfg *Config) (*fil
 		return fsp, nil
 	}
 
-	fsp.skipSpanExpr, err = filterspan.NewSkipExpr(&cfg.Spans)
+	fsp.skipSpanExpr, err = filterspan.NewSkipExpr(&cfg.Spans, set)
 	if err != nil {
 		return nil, err
 	}

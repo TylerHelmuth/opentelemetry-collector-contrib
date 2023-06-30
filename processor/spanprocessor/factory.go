@@ -72,7 +72,7 @@ func createTracesProcessor(
 		}
 	}
 
-	sp, err := newSpanProcessor(*oCfg)
+	sp, err := newSpanProcessor(*oCfg, set.TelemetrySettings)
 	if err != nil {
 		return nil, err
 	}

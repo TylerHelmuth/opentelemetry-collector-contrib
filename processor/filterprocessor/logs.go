@@ -47,7 +47,7 @@ func newFilterLogsProcessor(set component.TelemetrySettings, cfg *Config) (*filt
 		cfgMatch.Exclude = cfg.Logs.Exclude.matchProperties()
 	}
 
-	skipExpr, err := filterlog.NewSkipExpr(&cfgMatch)
+	skipExpr, err := filterlog.NewSkipExpr(&cfgMatch, set)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build skip matcher: %w", err)
 	}

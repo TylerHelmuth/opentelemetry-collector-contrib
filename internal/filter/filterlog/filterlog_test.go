@@ -9,10 +9,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/featuregate"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	conventions "go.opentelemetry.io/collector/semconv/v1.6.1"
+	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterconfig"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterottl"
@@ -1306,12 +1308,14 @@ func Test_NewSkipExpr_With_Bridge(t *testing.T) {
 
 			tCtx := ottllog.NewTransformContext(log, scope, resource)
 
-			boolExpr, err := NewSkipExpr(tt.condition)
+			settings := component.TelemetrySettings{Logger: zap.NewNop()}
+
+			boolExpr, err := NewSkipExpr(tt.condition, settings)
 			require.NoError(t, err)
 			expectedResult, err := boolExpr.Eval(context.Background(), tCtx)
 			assert.NoError(t, err)
 
-			ottlBoolExpr, err := filterottl.NewLogSkipExprBridge(tt.condition)
+			ottlBoolExpr, err := filterottl.NewLogSkipExprBridge(tt.condition, settings)
 			assert.NoError(t, err)
 			ottlResult, err := ottlBoolExpr.Eval(context.Background(), tCtx)
 			assert.NoError(t, err)
@@ -1367,7 +1371,7 @@ func BenchmarkFilterlog_NewSkipExpr(b *testing.B) {
 		err := featuregate.GlobalRegistry().Set("filter.filterlog.useOTTLBridge", true)
 		assert.NoError(b, err)
 
-		skipExpr, err := NewSkipExpr(tt.mc)
+		skipExpr, err := NewSkipExpr(tt.mc, component.TelemetrySettings{Logger: zap.NewNop()})
 		assert.NoError(b, err)
 
 		log := plog.NewLogRecord()

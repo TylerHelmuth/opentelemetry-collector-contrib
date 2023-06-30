@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/featuregate"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/expr"
@@ -27,10 +28,10 @@ var useOTTLBridge = featuregate.GlobalRegistry().MustRegister(
 // NewSkipExpr creates a BoolExpr that on evaluation returns true if a log should NOT be processed or kept.
 // The logic determining if a log should be processed is based on include and exclude settings.
 // Include properties are checked before exclude settings are checked.
-func NewSkipExpr(mp *filterconfig.MatchConfig) (expr.BoolExpr[ottllog.TransformContext], error) {
+func NewSkipExpr(mp *filterconfig.MatchConfig, settings component.TelemetrySettings) (expr.BoolExpr[ottllog.TransformContext], error) {
 
 	if useOTTLBridge.IsEnabled() {
-		return filterottl.NewLogSkipExprBridge(mp)
+		return filterottl.NewLogSkipExprBridge(mp, settings)
 	}
 	var matchers []expr.BoolExpr[ottllog.TransformContext]
 	inclExpr, err := newExpr(mp.Include)

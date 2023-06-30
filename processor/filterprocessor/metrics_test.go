@@ -11,12 +11,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/processor/processorhelper"
 	"go.opentelemetry.io/collector/processor/processortest"
+	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/goldendataset"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/filter/filterconfig"
@@ -1032,12 +1034,14 @@ func Test_ResourceSkipExpr_With_Bridge(t *testing.T) {
 
 			tCtx := ottlresource.NewTransformContext(resource)
 
-			boolExpr, err := newSkipResExpr(filterconfig.CreateMetricMatchPropertiesFromDefault(tt.condition.Include), filterconfig.CreateMetricMatchPropertiesFromDefault(tt.condition.Exclude))
+			settings := component.TelemetrySettings{Logger: zap.NewNop()}
+
+			boolExpr, err := newSkipResExpr(filterconfig.CreateMetricMatchPropertiesFromDefault(tt.condition.Include), filterconfig.CreateMetricMatchPropertiesFromDefault(tt.condition.Exclude), settings)
 			require.NoError(t, err)
 			expectedResult, err := boolExpr.Eval(context.Background(), tCtx)
 			assert.NoError(t, err)
 
-			ottlBoolExpr, err := filterottl.NewResourceSkipExprBridge(tt.condition)
+			ottlBoolExpr, err := filterottl.NewResourceSkipExprBridge(tt.condition, settings)
 
 			assert.NoError(t, err)
 			ottlResult, err := ottlBoolExpr.Eval(context.Background(), tCtx)

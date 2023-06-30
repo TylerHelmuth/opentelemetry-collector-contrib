@@ -6,6 +6,7 @@ package spanprocessor // import "github.com/open-telemetry/opentelemetry-collect
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/collector/component"
 	"regexp"
 	"strconv"
 	"strings"
@@ -34,8 +35,8 @@ type toAttributeRule struct {
 }
 
 // newSpanProcessor returns the span processor.
-func newSpanProcessor(config Config) (*spanProcessor, error) {
-	skipExpr, err := filterspan.NewSkipExpr(&config.MatchConfig)
+func newSpanProcessor(config Config, set component.TelemetrySettings) (*spanProcessor, error) {
+	skipExpr, err := filterspan.NewSkipExpr(&config.MatchConfig, set)
 	if err != nil {
 		return nil, err
 	}
