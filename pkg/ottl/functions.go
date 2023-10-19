@@ -4,6 +4,7 @@
 package ottl // import "github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -254,6 +255,14 @@ func (p *Parser[K]) buildArg(argVal value, argType reflect.Type) (any, error) {
 			return nil, err
 		}
 		return arg, nil
+	case strings.HasPrefix(name, "ListStringLikeGetters"):
+		arg, err := buildSlice[StringLikeGetter[K]](argVal, argType, p.buildArg, name)
+		if err != nil {
+			return nil, err
+		}
+		return StandardListStringLikeGetters[K]{Getter: func(_ context.Context, _ K) (interface{}, error) {
+			return arg, nil
+		}}, nil
 	case strings.HasPrefix(name, "StringGetter"):
 		arg, err := p.newGetter(argVal)
 		if err != nil {

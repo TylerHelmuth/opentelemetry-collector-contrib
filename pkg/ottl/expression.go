@@ -507,6 +507,30 @@ func (g StandardIntLikeGetter[K]) Get(ctx context.Context, tCtx K) (*int64, erro
 	return &result, nil
 }
 
+type ListStringLikeGetters[K any] interface {
+	Get(ctx context.Context, tCtx K) ([]StringLikeGetter[K], error)
+}
+
+type StandardListStringLikeGetters[K any] struct {
+	Getter func(ctx context.Context, tCtx K) (interface{}, error)
+}
+
+func (g StandardListStringLikeGetters[K]) Get(ctx context.Context, tCtx K) ([]StringLikeGetter[K], error) {
+	val, err := g.Getter(ctx, tCtx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting value in %T: %w", g, err)
+	}
+	if val == nil {
+		return nil, TypeError("expected []any but got nil")
+	}
+	switch v := val.(type) {
+	case []StringLikeGetter[K]:
+		return v, nil
+	default:
+		return nil, TypeError(fmt.Sprintf("expected []any but got %T", val))
+	}
+}
+
 func (p *Parser[K]) newGetter(val value) (Getter[K], error) {
 	if val.IsNil != nil && *val.IsNil {
 		return &literal[K]{value: nil}, nil

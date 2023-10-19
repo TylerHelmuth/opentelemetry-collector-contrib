@@ -12,7 +12,7 @@ import (
 )
 
 type ConcatArguments[K any] struct {
-	Vals      []ottl.StringLikeGetter[K]
+	Vals      ottl.ListStringLikeGetters[K]
 	Delimiter string
 }
 
@@ -30,9 +30,15 @@ func createConcatFunction[K any](_ ottl.FunctionContext, oArgs ottl.Arguments) (
 	return concat(args.Vals, args.Delimiter), nil
 }
 
-func concat[K any](vals []ottl.StringLikeGetter[K], delimiter string) ottl.ExprFunc[K] {
+func concat[K any](target ottl.ListStringLikeGetters[K], delimiter string) ottl.ExprFunc[K] {
 	return func(ctx context.Context, tCtx K) (interface{}, error) {
 		builder := strings.Builder{}
+
+		vals, err := target.Get(ctx, tCtx)
+		if err != nil {
+			return nil, err
+		}
+
 		for i, rv := range vals {
 			val, err := rv.Get(ctx, tCtx)
 			if err != nil {
