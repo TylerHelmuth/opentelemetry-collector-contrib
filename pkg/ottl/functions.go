@@ -256,7 +256,17 @@ func (p *Parser[K]) buildArg(argVal value, argType reflect.Type) (any, error) {
 		}
 		return arg, nil
 	case strings.HasPrefix(name, "ListStringLikeGetters"):
-		arg, err := buildSlice[StringLikeGetter[K]](argVal, argType, p.buildArg, name)
+		if argVal.Literal != nil && argVal.Literal.Converter != nil {
+			arg, err := p.newGetter(argVal)
+			if err != nil {
+				return nil, err
+			}
+			return StandardListStringLikeGetters[K]{Getter: arg.Get}, nil
+		}
+
+		var temp []StringLikeGetter[K]
+		x := reflect.TypeOf(temp)
+		arg, err := buildSlice[StringLikeGetter[K]](argVal, x, p.buildArg, x.Elem().Name())
 		if err != nil {
 			return nil, err
 		}

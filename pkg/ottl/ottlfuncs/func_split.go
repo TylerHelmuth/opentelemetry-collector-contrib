@@ -36,6 +36,7 @@ func split[K any](target ottl.StringGetter[K], delimiter string) ottl.ExprFunc[K
 		if err != nil {
 			return nil, err
 		}
-		return strings.Split(val, delimiter), nil
+		x := strings.Split(val, delimiter)
+		return x, nil
 	}
 }

@@ -521,12 +521,26 @@ func (g StandardListStringLikeGetters[K]) Get(ctx context.Context, tCtx K) ([]St
 		return nil, fmt.Errorf("error getting value in %T: %w", g, err)
 	}
 	if val == nil {
-		return nil, TypeError("expected []any but got nil")
+		return nil, TypeError("expected []StringLikeGetters but got nil")
 	}
+
 	switch v := val.(type) {
 	case []StringLikeGetter[K]:
 		return v, nil
 	default:
+		vValue := reflect.ValueOf(v)
+		if vValue.Kind() == reflect.Slice {
+			var result []StringLikeGetter[K]
+			for i := 0; i < vValue.Len(); i++ {
+				e := vValue.Index(i)
+				x := e.Interface()
+				result = append(result, StandardStringLikeGetter[K]{Getter: func(_ context.Context, _ K) (interface{}, error) {
+					return x, nil
+				}})
+			}
+			return result, nil
+		}
+
 		return nil, TypeError(fmt.Sprintf("expected []any but got %T", val))
 	}
 }
