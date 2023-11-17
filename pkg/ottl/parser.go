@@ -306,46 +306,40 @@ func (s *Statements[K]) Eval(ctx context.Context, tCtx K) (bool, error) {
 	return false, nil
 }
 
-type collection[K any] struct {
-	statements        []*Statement[K]
+// ConditionSequence represents a list of conditions that will be executed sequentially for a TransformContext.
+type ConditionSequence[K any] struct {
 	conditions        []*Condition[K]
 	errorMode         ErrorMode
 	telemetrySettings component.TelemetrySettings
 }
 
-// CollectionOption allows modifying the options of a StatementCollection or ConditionCollection
-type CollectionOption[K any] func(*collection[K])
+type ConditionSequenceOption[K any] func(*ConditionSequence[K])
 
-// Add back once we're ready to remove Statements
-// func WithErrorMode[K any](errorMode ErrorMode) CollectionOption[K] {
-//    return func(c *collection[K]) {
-//      c.errorMode = errorMode
-//    }
-// }
-
-func (c *collection[K]) Execute(ctx context.Context, tCtx K) error {
-	for _, statement := range c.statements {
-		_, _, err := statement.Execute(ctx, tCtx)
-		if err != nil {
-			if c.errorMode == PropagateError {
-				err = fmt.Errorf("failed to execute condition: %v, %w", statement.origText, err)
-				return err
-			}
-			c.telemetrySettings.Logger.Warn("failed to execute condition", zap.Error(err), zap.String("condition", statement.origText))
-		}
+func NewConditionSequence[K any](conditions []*Condition[K], errorMode ErrorMode, telemetrySettings component.TelemetrySettings, options ...ConditionSequenceOption[K]) ConditionSequence[K] {
+	c := ConditionSequence[K]{
+		conditions:        conditions,
+		errorMode:         errorMode,
+		telemetrySettings: telemetrySettings,
 	}
-	return nil
+	for _, op := range options {
+		op(&c)
+	}
+	return c
 }
 
-func (c *collection[K]) Eval(ctx context.Context, tCtx K) (bool, error) {
-	for _, condition := range c.conditions {
-		match, err := condition.Eval(ctx, tCtx)
+// Eval returns true if any condition is true and returns false otherwise.
+// Does not execute the statement's function.
+// When errorMode is `propagate`, errors cause the evaluation to be false and an error is returned.
+// When errorMode is `ignore`, errors cause evaluation to continue to the next condition.
+func (s *ConditionSequence[K]) Eval(ctx context.Context, tCtx K) (bool, error) {
+	for _, condition := range s.conditions {
+		match, err := condition.condition.Eval(ctx, tCtx)
 		if err != nil {
-			if c.errorMode == PropagateError {
+			if s.errorMode == PropagateError {
 				err = fmt.Errorf("failed to eval condition: %v, %w", condition.origText, err)
 				return false, err
 			}
-			c.telemetrySettings.Logger.Warn("failed to eval condition", zap.Error(err), zap.String("condition", condition.origText))
+			s.telemetrySettings.Logger.Warn("failed to eval condition", zap.Error(err), zap.String("condition", condition.origText))
 			continue
 		}
 		if match {
@@ -353,55 +347,4 @@ func (c *collection[K]) Eval(ctx context.Context, tCtx K) (bool, error) {
 		}
 	}
 	return false, nil
-}
-
-func (c *collection[K]) GetErrorMode() ErrorMode {
-	return c.errorMode
-}
-
-// StatementCollection represent a collection of OTTL statements.
-type StatementCollection[K any] interface {
-	// Execute will execute each statement for the supplied TransformContext.
-	Execute(ctx context.Context, tCtx K) error
-
-	// GetErrorMode returns this collection's error mode
-	GetErrorMode() ErrorMode
-}
-
-// NewStatementCollection creates a new StatementCollection based on the supplied values.
-// By default the collection will ignore errors when executing statements, moving on to the next statement.
-func NewStatementCollection[K any](statements []*Statement[K], telemetrySettings component.TelemetrySettings, options ...CollectionOption[K]) StatementCollection[K] {
-	s := collection[K]{
-		statements:        statements,
-		telemetrySettings: telemetrySettings,
-		errorMode:         IgnoreError,
-	}
-	for _, opt := range options {
-		opt(&s)
-	}
-	return &s
-}
-
-// ConditionCollection represent a collection of OTTL conditions.
-type ConditionCollection[K any] interface {
-	// Eval will evaluate the result of all the conditions against the supplied TransformContext.
-	// If any condition is true, the result is true.
-	Eval(ctx context.Context, tCtx K) (bool, error)
-
-	// GetErrorMode returns this collection's error mode
-	GetErrorMode() ErrorMode
-}
-
-// NewConditionCollection creates a new ConditionCollection based on the supplied values.
-// By default the collection will ignore errors when executing conditions, moving on to the next condition.
-func NewConditionCollection[K any](conditions []*Condition[K], telemetrySettings component.TelemetrySettings, options ...CollectionOption[K]) ConditionCollection[K] {
-	c := collection[K]{
-		conditions:        conditions,
-		telemetrySettings: telemetrySettings,
-		errorMode:         IgnoreError,
-	}
-	for _, opt := range options {
-		opt(&c)
-	}
-	return &c
 }
