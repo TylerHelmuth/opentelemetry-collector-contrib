@@ -947,15 +947,6 @@ func (c *WatchClient) shouldIgnorePod(pod *api_v1.Pod) bool {
 }
 
 func selectorsFromFilters(filters Filters) (labels.Selector, fields.Selector, error) {
-	labelSelector := labels.Everything()
-	for _, f := range filters.Labels {
-		r, err := labels.NewRequirement(f.Key, f.Op, []string{f.Value})
-		if err != nil {
-			return nil, nil, err
-		}
-		labelSelector = labelSelector.Add(*r)
-	}
-
 	var selectors []fields.Selector
 	for _, f := range filters.Fields {
 		switch f.Op {
@@ -968,6 +959,15 @@ func selectorsFromFilters(filters Filters) (labels.Selector, fields.Selector, er
 		default:
 			return nil, nil, fmt.Errorf("field filters don't support operator: '%s'", f.Op)
 		}
+	}
+
+	labelSelector := labels.Everything()
+	for _, f := range filters.Labels {
+		r, err := labels.NewRequirement(f.Key, f.Op, []string{f.Value})
+		if err != nil {
+			return nil, nil, err
+		}
+		labelSelector = labelSelector.Add(*r)
 	}
 
 	if filters.Node != "" {
