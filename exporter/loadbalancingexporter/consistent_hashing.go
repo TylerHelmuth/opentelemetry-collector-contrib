@@ -6,6 +6,8 @@ package loadbalancingexporter // import "github.com/open-telemetry/opentelemetry
 import (
 	"hash/crc32"
 	"sort"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -26,14 +28,16 @@ type ringItem struct {
 // hashRing is a consistent hash ring following Karger et al.
 type hashRing struct {
 	// ringItems holds all the positions, used for the lookup the position for the closest next ring item
-	items []ringItem
+	items  []ringItem
+	logger *zap.Logger
 }
 
 // newHashRing builds a new immutable consistent hash ring based on the given endpoints.
-func newHashRing(endpoints []string) *hashRing {
+func newHashRing(endpoints []string, logger *zap.Logger) *hashRing {
 	items := positionsForEndpoints(endpoints, defaultWeight)
 	return &hashRing{
-		items: items,
+		items:  items,
+		logger: logger,
 	}
 }
 
@@ -48,7 +52,9 @@ func (h *hashRing) endpointFor(identifier []byte) string {
 	hash := hasher.Sum32()
 	pos := hash % maxPositions
 
-	return h.findEndpoint(position(pos))
+	result := h.findEndpoint(position(pos))
+	h.logger.Debug("endpointFor", zap.String("endpoint", result), zap.String("identifier", string(identifier)), zap.Any("identifierAsBytes", identifier))
+	return result
 }
 
 // findEndpoint returns the "next" endpoint starting from the given position, or an empty string in case no endpoints are available

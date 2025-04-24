@@ -111,6 +111,7 @@ func (e *traceExporterImp) ConsumeTraces(ctx context.Context, td ptrace.Traces) 
 		}
 
 		for rid := range routingID {
+			e.logger.Debug("routing id from traces", zap.String("routingID", rid))
 			exp, endpoint, err := e.loadBalancer.exporterAndEndpoint([]byte(rid))
 			if err != nil {
 				return err

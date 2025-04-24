@@ -36,6 +36,7 @@ func (h handler) OnAdd(obj any, _ bool) {
 	switch object := obj.(type) {
 	case *corev1.Endpoints:
 		ok, endpoints = convertToEndpoints(h.returnNames, object)
+		h.logger.Debug("endpoints found", zap.String("function", "OnAdd"), zap.Any("endpoints", endpoints))
 		if !ok {
 			h.logger.Warn(epMissingHostnamesMsg, zap.Any("obj", obj))
 			h.telemetry.LoadbalancerNumResolutions.Add(context.Background(), 1, metric.WithAttributeSet(k8sResolverFailureAttrSet))
@@ -70,6 +71,8 @@ func (h handler) OnUpdate(oldObj, newObj any) {
 
 		_, oldEndpoints := convertToEndpoints(h.returnNames, oldEps)
 		hostnameOk, newEndpoints := convertToEndpoints(h.returnNames, newEps)
+		h.logger.Debug("old endpoints found", zap.String("function", "OnUpdate"), zap.Any("endpoints", oldEndpoints))
+		h.logger.Debug("new endpoints found", zap.String("function", "OnUpdate"), zap.Any("endpoints", newEndpoints))
 		if !hostnameOk {
 			h.logger.Warn(epMissingHostnamesMsg, zap.Any("obj", newEps))
 			h.telemetry.LoadbalancerNumResolutions.Add(context.Background(), 1, metric.WithAttributeSet(k8sResolverFailureAttrSet))
@@ -117,6 +120,7 @@ func (h handler) OnDelete(obj any) {
 	case *corev1.Endpoints:
 		if object != nil {
 			ok, endpoints = convertToEndpoints(h.returnNames, object)
+			h.logger.Debug("endpoints to delete", zap.String("function", "OnDelete"), zap.Any("endpoints", endpoints))
 			if !ok {
 				h.logger.Warn(epMissingHostnamesMsg, zap.Any("obj", obj))
 				h.telemetry.LoadbalancerNumResolutions.Add(context.Background(), 1, metric.WithAttributeSet(k8sResolverFailureAttrSet))

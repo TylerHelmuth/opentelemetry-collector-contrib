@@ -147,7 +147,7 @@ func (lb *loadBalancer) Start(ctx context.Context, host component.Host) error {
 }
 
 func (lb *loadBalancer) onBackendChanges(resolved []string) {
-	newRing := newHashRing(resolved)
+	newRing := newHashRing(resolved, lb.logger)
 
 	if !newRing.equal(lb.ring) {
 		lb.updateLock.Lock()

@@ -217,6 +217,8 @@ func (r *k8sResolver) resolve(ctx context.Context) ([]string, error) {
 		return r.Endpoints(), nil
 	}
 
+	r.logger.Debug("backends found during resolve", zap.Strings("backends", backends))
+
 	// the list has changed!
 	r.updateLock.Lock()
 	r.endpoints = backends
