@@ -5,6 +5,7 @@ package loadbalancingexporter // import "github.com/open-telemetry/opentelemetry
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -177,7 +178,7 @@ func routingIdentifiersFromTraces(td ptrace.Traces, rType routingKey, attrs []st
 	case traceIDRouting:
 		// The simple case is the TraceID routing. In this case, we just use the string representation of the Trace ID.
 		tid := spans.At(0).TraceID()
-		ids[string(tid[:])] = true
+		ids[hex.EncodeToString(tid[:])] = true
 
 		return ids, nil
 	case svcRouting:
