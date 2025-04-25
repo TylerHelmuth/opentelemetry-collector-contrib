@@ -4,6 +4,7 @@
 package loadbalancingexporter // import "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/loadbalancingexporter"
 
 import (
+	"fmt"
 	"hash/crc32"
 	"sort"
 
@@ -53,7 +54,7 @@ func (h *hashRing) endpointFor(identifier []byte) string {
 	pos := hash % maxPositions
 
 	result := h.findEndpoint(position(pos))
-	h.logger.Debug("endpointFor", zap.String("endpoint", result), zap.String("identifier", string(identifier)), zap.Any("identifierAsBytes", identifier))
+	h.logger.Debug("endpointFor", zap.String("endpoint", result), zap.String("identifier", string(identifier)), zap.Any("identifierAsBytes", identifier), zap.String("trace16ByteArray", fmt.Sprintf("%d", identifier)))
 	return result
 }
 
