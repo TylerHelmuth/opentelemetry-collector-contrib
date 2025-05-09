@@ -93,7 +93,7 @@ func (l *LibhoneyEvent) DebugString() string {
 }
 
 // SignalType returns the type of signal this event represents. Only log is implemented for now.
-func (l *LibhoneyEvent) SignalType(logger zap.Logger) string {
+func (l *LibhoneyEvent) SignalType(defaultSignal string, logger zap.Logger) string {
 	if sig, ok := l.Data["meta.signal_type"]; ok {
 		switch sig {
 		case "trace":
@@ -111,12 +111,10 @@ func (l *LibhoneyEvent) SignalType(logger zap.Logger) string {
 		case "log":
 			return "log"
 		default:
-			logger.Warn("invalid meta.signal_type", zap.String("meta.signal_type", sig.(string)))
-			return "log"
+			return defaultSignal
 		}
 	}
-	logger.Warn("missing meta.signal_type and meta.annotation_type")
-	return "log"
+	return defaultSignal
 }
 
 // GetService returns the service name from the event or the dataset name if no service name is found.
@@ -204,7 +202,7 @@ type ServiceHistory struct {
 }
 
 // ToPLogRecord converts a LibhoneyEvent to a Pdata LogRecord
-func (l *LibhoneyEvent) ToPLogRecord(newLog *plog.LogRecord, alreadyUsedFields *[]string, logger zap.Logger) error {
+func (l *LibhoneyEvent) ToPLogRecord(newLog *plog.LogRecord, alreadyUsedFields *[]string, cfg FieldMapConfig, logger zap.Logger) error {
 	timeNs := l.MsgPackTimestamp.UnixNano()
 	logger.Debug("processing log with", zap.Int64("timestamp", timeNs))
 	newLog.SetTimestamp(pcommon.Timestamp(timeNs))
@@ -226,6 +224,31 @@ func (l *LibhoneyEvent) ToPLogRecord(newLog *plog.LogRecord, alreadyUsedFields *
 	// undoing this is gonna be complicated: https://github.com/honeycombio/husky/blob/91c0498333cd9f5eed1fdb8544ca486db7dea565/otlp/logs.go#L61
 	if logBody, ok := l.Data["body"]; ok {
 		newLog.Body().SetStr(logBody.(string))
+	}
+
+	if tid, ok := l.Data[cfg.Attributes.TraceID]; ok {
+		tid := strings.ReplaceAll(tid.(string), "-", "")
+		tidByteArray, err := hex.DecodeString(tid)
+		if err == nil {
+			if len(tidByteArray) >= 32 {
+				tidByteArray = tidByteArray[0:32]
+			}
+			newLog.SetTraceID(pcommon.TraceID(tidByteArray))
+		} else {
+			newLog.SetTraceID(pcommon.TraceID(traceIDFrom(tid)))
+		}
+	}
+	if sid, ok := l.Data[cfg.Attributes.SpanID]; ok {
+		sid := strings.ReplaceAll(sid.(string), "-", "")
+		sidByteArray, err := hex.DecodeString(sid)
+		if err == nil {
+			if len(sidByteArray) >= 16 {
+				sidByteArray = sidByteArray[0:16]
+			}
+			newLog.SetSpanID(pcommon.SpanID(sidByteArray))
+		} else {
+			newLog.SetSpanID(pcommon.SpanID(spanIDFrom(sid)))
+		}
 	}
 
 	newLog.Attributes().PutInt("SampleRate", int64(l.Samplerate))
@@ -250,29 +273,27 @@ func (l *LibhoneyEvent) ToPLogRecord(newLog *plog.LogRecord, alreadyUsedFields *
 			newLog.Attributes().PutDouble(k, v)
 		case bool:
 			newLog.Attributes().PutBool(k, v)
-		default:
-			logger.Warn("Span data type issue", zap.Int64("timestamp", timeNs), zap.String("key", k))
 		}
 	}
 	return nil
 }
 
 // GetParentID returns the parent id from the event or an error if it's not found
-func (l *LibhoneyEvent) GetParentID(fieldName string) (trc.SpanID, error) {
+func (l *LibhoneyEvent) GetParentID(fieldName string) trc.SpanID {
 	if pid, ok := l.Data[fieldName]; ok {
 		pid := strings.ReplaceAll(pid.(string), "-", "")
 		pidByteArray, err := hex.DecodeString(pid)
-		if err == nil {
-			if len(pidByteArray) == 32 {
-				pidByteArray = pidByteArray[8:24]
-			} else if len(pidByteArray) >= 16 {
-				pidByteArray = pidByteArray[0:16]
-			}
-			return trc.SpanID(pidByteArray), nil
+		if err != nil {
+			return trc.SpanID{}
 		}
-		return trc.SpanID{}, errors.New("parent id is not a valid span id")
+		if len(pidByteArray) == 32 {
+			pidByteArray = pidByteArray[8:24]
+		} else if len(pidByteArray) >= 16 {
+			pidByteArray = pidByteArray[0:16]
+		}
+		return trc.SpanID(pidByteArray)
 	}
-	return trc.SpanID{}, errors.New("parent id not found")
+	return trc.SpanID{}
 }
 
 // ToPTraceSpan converts a LibhoneyEvent to a Pdata Span
@@ -377,8 +398,6 @@ func (l *LibhoneyEvent) ToPTraceSpan(newSpan *ptrace.Span, alreadyUsedFields *[]
 			newSpan.Attributes().PutDouble(k, v)
 		case bool:
 			newSpan.Attributes().PutBool(k, v)
-		default:
-			logger.Warn("Span data type issue", zap.String("trace.trace_id", newSpan.TraceID().String()), zap.String("trace.span_id", newSpan.SpanID().String()), zap.String("key", k))
 		}
 	}
 	return nil

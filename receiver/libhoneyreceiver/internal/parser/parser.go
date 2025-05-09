@@ -33,7 +33,7 @@ func GetDatasetFromRequest(path string) (string, error) {
 }
 
 // ToPdata converts a list of LibhoneyEvents to a Pdata Logs object
-func ToPdata(dataset string, lhes []libhoneyevent.LibhoneyEvent, cfg libhoneyevent.FieldMapConfig, logger zap.Logger) (plog.Logs, ptrace.Traces) {
+func ToPdata(dataset string, lhes []libhoneyevent.LibhoneyEvent, defaultSignal string, cfg libhoneyevent.FieldMapConfig, logger zap.Logger) (plog.Logs, ptrace.Traces) {
 	foundServices := libhoneyevent.ServiceHistory{}
 	foundServices.NameCount = make(map[string]int)
 	foundScopes := libhoneyevent.ScopeHistory{}
@@ -59,12 +59,9 @@ func ToPdata(dataset string, lhes []libhoneyevent.LibhoneyEvent, cfg libhoneyeve
 	alreadyUsedFields = append(alreadyUsedFields, cfg.Attributes.DurationFields...)
 
 	for _, lhe := range lhes {
-		parentID, err := lhe.GetParentID(cfg.Attributes.ParentID)
-		if err != nil {
-			logger.Warn("parent id not found")
-		}
+		parentID := lhe.GetParentID(cfg.Attributes.ParentID)
 
-		action := lhe.SignalType(logger)
+		action := lhe.SignalType(defaultSignal, logger)
 		switch action {
 		case "span":
 			spanService, _ := lhe.GetService(cfg, &foundServices, dataset)
@@ -78,7 +75,7 @@ func ToPdata(dataset string, lhes []libhoneyevent.LibhoneyEvent, cfg libhoneyeve
 			logService, _ := lhe.GetService(cfg, &foundServices, dataset)
 			logScopeKey, _ := lhe.GetScope(cfg, &foundScopes, logService) // adds a new found scope if needed
 			newLog := foundScopes.Scope[logScopeKey].ScopeLogs.AppendEmpty()
-			err := lhe.ToPLogRecord(&newLog, &alreadyUsedFields, logger)
+			err := lhe.ToPLogRecord(&newLog, &alreadyUsedFields, cfg, logger)
 			if err != nil {
 				logger.Warn("log could not be converted from libhoney to plog", zap.String("span.object", lhe.DebugString()))
 			}

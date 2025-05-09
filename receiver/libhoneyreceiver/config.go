@@ -20,6 +20,7 @@ type Config struct {
 	HTTP           *HTTPConfig                  `mapstructure:"http"`
 	AuthAPI        string                       `mapstructure:"auth_api"`
 	Wrapper        string                       `mapstructure:"wrapper"`
+	DefaultSignal  string                       `mapstructure:"default_signal"`
 	FieldMapConfig libhoneyevent.FieldMapConfig `mapstructure:"fields"`
 }
 

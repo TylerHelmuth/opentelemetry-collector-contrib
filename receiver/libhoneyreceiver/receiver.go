@@ -231,7 +231,7 @@ func (r *libhoneyReceiver) handleEvent(resp http.ResponseWriter, req *http.Reque
 		}
 	}
 
-	otlpLogs, otlpTraces := parser.ToPdata(dataset, libhoneyevents, r.cfg.FieldMapConfig, *r.settings.Logger)
+	otlpLogs, otlpTraces := parser.ToPdata(dataset, libhoneyevents, r.cfg.DefaultSignal, r.cfg.FieldMapConfig, *r.settings.Logger)
 
 	numLogs := otlpLogs.LogRecordCount()
 	if numLogs > 0 {

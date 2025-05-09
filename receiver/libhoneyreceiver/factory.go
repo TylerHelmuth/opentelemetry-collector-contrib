@@ -44,7 +44,8 @@ func createDefaultConfig() component.Config {
 			},
 			TracesURLPaths: defaultTracesURLPaths,
 		},
-		AuthAPI: "",
+		AuthAPI:       "",
+		DefaultSignal: "log",
 		FieldMapConfig: libhoneyevent.FieldMapConfig{
 			Resources: libhoneyevent.ResourcesConfig{
 				ServiceName: "service.name",
