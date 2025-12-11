@@ -14,6 +14,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+func NewFactory() confmap.ProviderFactory {
+	return confmap.NewProviderFactory(newProvider)
+}
+
+func newProvider(confmap.ProviderSettings) confmap.Provider {
+	return newOpampProvider()
+}
+
 type opampProvider struct {
 	instanceID uuid.UUID
 

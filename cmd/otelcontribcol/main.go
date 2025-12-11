@@ -18,7 +18,6 @@ import (
 	secretsmanagerprovider "github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/secretsmanagerprovider"
 	googlesecretmanagerprovider "github.com/open-telemetry/opentelemetry-collector-contrib/confmap/provider/googlesecretmanagerprovider"
 	"go.opentelemetry.io/collector/otelcol"
-	"golang.org/x/net/context"
 )
 
 func main() {
@@ -27,9 +26,7 @@ func main() {
 		Description: "Local OpenTelemetry Collector Contrib binary, testing only.",
 		Version:     "0.141.0-dev",
 	}
-
-	opampprovider := newOpampProvider()
-
+	
 	set := otelcol.CollectorSettings{
 		BuildInfo: info,
 		Factories: components,
@@ -45,9 +42,7 @@ func main() {
 					s3provider.NewFactory(),
 					secretsmanagerprovider.NewFactory(),
 					googlesecretmanagerprovider.NewFactory(),
-					confmap.NewProviderFactory(func(_ confmap.ProviderSettings) confmap.Provider {
-						return opampprovider
-					}),
+					NewFactory(),
 				},
 			},
 		},
@@ -69,7 +64,6 @@ func main() {
 	if err := run(set); err != nil {
 		log.Fatal(err)
 	}
-	_ = opampprovider.Shutdown(context.Background())
 }
 
 func runInteractive(params otelcol.CollectorSettings) error {
