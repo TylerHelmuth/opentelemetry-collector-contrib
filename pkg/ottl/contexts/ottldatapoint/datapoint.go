@@ -53,7 +53,8 @@ type TransformContext struct {
 func (tCtx *TransformContext) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	err := encoder.AddObject("resource", logging.Resource(tCtx.GetResource()))
 	err = errors.Join(err, encoder.AddObject("scope", logging.InstrumentationScope(tCtx.GetInstrumentationScope())))
-	err = errors.Join(err, encoder.AddObject("metric", logging.Metric(tCtx.metric)))
+	// Use MetricWithoutDataPoints to avoid iterating over potentially nil datapoints during RemoveIf operations
+	err = errors.Join(err, encoder.AddObject("metric", logging.MetricWithoutDataPoints(tCtx.metric)))
 
 	switch dp := tCtx.dataPoint.(type) {
 	case pmetric.NumberDataPoint:

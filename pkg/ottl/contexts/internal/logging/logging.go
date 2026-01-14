@@ -190,6 +190,36 @@ func (m Metric) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
 	return err
 }
 
+// MetricWithoutDataPoints marshals a metric without including its datapoints array.
+// This is used when logging from a datapoint context to avoid iterating over the parent
+// metric's datapoints, which may contain nil elements during RemoveIf operations.
+type MetricWithoutDataPoints pmetric.Metric
+
+func (m MetricWithoutDataPoints) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
+	mm := pmetric.Metric(m)
+	encoder.AddString("description", mm.Description())
+	encoder.AddString("name", mm.Name())
+	encoder.AddString("unit", mm.Unit())
+	encoder.AddString("type", mm.Type().String())
+	err := encoder.AddObject("metadata", Map(mm.Metadata()))
+
+	switch mm.Type() {
+	case pmetric.MetricTypeSum:
+		encoder.AddString("aggregation_temporality", mm.Sum().AggregationTemporality().String())
+		encoder.AddBool("is_monotonic", mm.Sum().IsMonotonic())
+	case pmetric.MetricTypeGauge:
+		// No additional fields to add for Gauge
+	case pmetric.MetricTypeHistogram:
+		encoder.AddString("aggregation_temporality", mm.Histogram().AggregationTemporality().String())
+	case pmetric.MetricTypeExponentialHistogram:
+		encoder.AddString("aggregation_temporality", mm.ExponentialHistogram().AggregationTemporality().String())
+	case pmetric.MetricTypeSummary:
+		// No additional fields to add for Summary
+	}
+
+	return err
+}
+
 type NumberDataPointSlice pmetric.NumberDataPointSlice
 
 func (n NumberDataPointSlice) MarshalLogArray(encoder zapcore.ArrayEncoder) error {
