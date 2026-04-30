@@ -1,0 +1,299 @@
+// Copyright The OpenTelemetry Authors
+// SPDX-License-Identifier: Apache-2.0
+
+package genainormalizerprocessor
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/consumer/consumertest"
+	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/ptrace"
+	"go.opentelemetry.io/collector/processor/processortest"
+
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/genainormalizerprocessor/internal/metadata"
+)
+
+// newNormalizer builds a single-source sourceNormalizer from a fixture lookup
+// table so machinery tests do not depend on the populated built-in tables.
+func newNormalizer(lookup map[string]string, removeOriginals, overwrite bool) sourceNormalizer {
+	return sourceNormalizer{
+		lookupTable:     lookup,
+		removeOriginals: removeOriginals,
+		overwrite:       overwrite,
+	}
+}
+
+func newSpan() (ptrace.Traces, ptrace.Span) {
+	td := ptrace.NewTraces()
+	span := td.ResourceSpans().AppendEmpty().ScopeSpans().AppendEmpty().Spans().AppendEmpty()
+	return td, span
+}
+
+func TestNormalizeAttributes(t *testing.T) {
+	tests := []struct {
+		name            string
+		lookup          map[string]string
+		removeOriginals bool
+		overwrite       bool
+		setup           func(pcommon.Map)
+		verify          func(*testing.T, pcommon.Map)
+	}{
+		{
+			name:            "string rename, remove_originals=true",
+			lookup:          map[string]string{"src.model": "dst.model"},
+			removeOriginals: true,
+			setup: func(attrs pcommon.Map) {
+				attrs.PutStr("src.model", "m")
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, ok := attrs.Get("dst.model")
+				require.True(t, ok)
+				assert.Equal(t, "m", v.Str())
+				_, ok = attrs.Get("src.model")
+				assert.False(t, ok)
+			},
+		},
+		{
+			name:   "int rename",
+			lookup: map[string]string{"src.count": "dst.count"},
+			setup: func(attrs pcommon.Map) {
+				attrs.PutInt("src.count", 42)
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, ok := attrs.Get("dst.count")
+				require.True(t, ok)
+				assert.Equal(t, int64(42), v.Int())
+			},
+		},
+		{
+			name:   "double rename",
+			lookup: map[string]string{"src.ratio": "dst.ratio"},
+			setup: func(attrs pcommon.Map) {
+				attrs.PutDouble("src.ratio", 0.7)
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, ok := attrs.Get("dst.ratio")
+				require.True(t, ok)
+				assert.Equal(t, 0.7, v.Double())
+			},
+		},
+		{
+			name:   "bool rename",
+			lookup: map[string]string{"src.flag": "dst.flag"},
+			setup: func(attrs pcommon.Map) {
+				attrs.PutBool("src.flag", true)
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, ok := attrs.Get("dst.flag")
+				require.True(t, ok)
+				assert.True(t, v.Bool())
+			},
+		},
+		{
+			name:   "slice rename snapshots source before write",
+			lookup: map[string]string{"src.list": "dst.list"},
+			setup: func(attrs pcommon.Map) {
+				s := attrs.PutEmptySlice("src.list")
+				s.AppendEmpty().SetStr("a")
+				s.AppendEmpty().SetStr("b")
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, ok := attrs.Get("dst.list")
+				require.True(t, ok)
+				require.Equal(t, pcommon.ValueTypeSlice, v.Type())
+				require.Equal(t, 2, v.Slice().Len())
+				assert.Equal(t, "a", v.Slice().At(0).Str())
+				assert.Equal(t, "b", v.Slice().At(1).Str())
+			},
+		},
+		{
+			name:   "map rename snapshots source before write",
+			lookup: map[string]string{"src.obj": "dst.obj"},
+			setup: func(attrs pcommon.Map) {
+				m := attrs.PutEmptyMap("src.obj")
+				m.PutStr("k", "v")
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, ok := attrs.Get("dst.obj")
+				require.True(t, ok)
+				require.Equal(t, pcommon.ValueTypeMap, v.Type())
+				inner, ok := v.Map().Get("k")
+				require.True(t, ok)
+				assert.Equal(t, "v", inner.Str())
+			},
+		},
+		{
+			name:   "bytes rename snapshots source before write",
+			lookup: map[string]string{"src.bytes": "dst.bytes"},
+			setup: func(attrs pcommon.Map) {
+				attrs.PutEmptyBytes("src.bytes").FromRaw([]byte{0x01, 0x02})
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, ok := attrs.Get("dst.bytes")
+				require.True(t, ok)
+				require.Equal(t, pcommon.ValueTypeBytes, v.Type())
+				assert.Equal(t, []byte{0x01, 0x02}, v.Bytes().AsRaw())
+			},
+		},
+		{
+			name:            "remove_originals=false keeps source",
+			lookup:          map[string]string{"src.model": "dst.model"},
+			removeOriginals: false,
+			setup: func(attrs pcommon.Map) {
+				attrs.PutStr("src.model", "m")
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				_, ok := attrs.Get("src.model")
+				assert.True(t, ok)
+			},
+		},
+		{
+			name:            "overwrite=false skips when target exists",
+			lookup:          map[string]string{"src.model": "dst.model"},
+			removeOriginals: true,
+			overwrite:       false,
+			setup: func(attrs pcommon.Map) {
+				attrs.PutStr("src.model", "new")
+				attrs.PutStr("dst.model", "existing")
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, _ := attrs.Get("dst.model")
+				assert.Equal(t, "existing", v.Str())
+			},
+		},
+		{
+			name:            "overwrite=true replaces when target exists",
+			lookup:          map[string]string{"src.model": "dst.model"},
+			removeOriginals: true,
+			overwrite:       true,
+			setup: func(attrs pcommon.Map) {
+				attrs.PutStr("src.model", "new")
+				attrs.PutStr("dst.model", "existing")
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				v, _ := attrs.Get("dst.model")
+				assert.Equal(t, "new", v.Str())
+			},
+		},
+		{
+			name:            "no match is a no-op",
+			lookup:          map[string]string{"src.model": "dst.model"},
+			removeOriginals: true,
+			setup: func(attrs pcommon.Map) {
+				attrs.PutStr("http.method", "GET")
+				attrs.PutInt("http.status_code", 200)
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				assert.Equal(t, 2, attrs.Len())
+			},
+		},
+		{
+			name: "multiple renames in one pass",
+			lookup: map[string]string{
+				"src.a": "dst.a",
+				"src.b": "dst.b",
+			},
+			removeOriginals: true,
+			setup: func(attrs pcommon.Map) {
+				attrs.PutStr("src.a", "va")
+				attrs.PutStr("src.b", "vb")
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				va, _ := attrs.Get("dst.a")
+				vb, _ := attrs.Get("dst.b")
+				assert.Equal(t, "va", va.Str())
+				assert.Equal(t, "vb", vb.Str())
+			},
+		},
+		{
+			name:   "string target routed through transformValue",
+			lookup: map[string]string{"src.op": targetOperationName},
+			setup: func(attrs pcommon.Map) {
+				attrs.PutStr("src.op", "anything")
+			},
+			verify: func(t *testing.T, attrs pcommon.Map) {
+				// operationNameValues is empty in this PR, so transformValue
+				// returns the input unchanged. The dispatch is still exercised.
+				v, ok := attrs.Get(targetOperationName)
+				require.True(t, ok)
+				assert.Equal(t, "anything", v.Str())
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, span := newSpan()
+			tt.setup(span.Attributes())
+			sn := newNormalizer(tt.lookup, tt.removeOriginals, tt.overwrite)
+			sn.normalizeAttributes(span.Attributes())
+			tt.verify(t, span.Attributes())
+		})
+	}
+}
+
+func TestProcessTraces_AppliesToSpansAndEvents(t *testing.T) {
+	p := &genaiNormalizerProcessor{
+		sources: []sourceNormalizer{
+			newNormalizer(map[string]string{"src.model": "dst.model"}, true, false),
+		},
+	}
+
+	td, span := newSpan()
+	span.Attributes().PutStr("src.model", "m")
+	evt := span.Events().AppendEmpty()
+	evt.Attributes().PutStr("src.model", "me")
+
+	_, err := p.processTraces(t.Context(), td)
+	require.NoError(t, err)
+
+	spanVal, ok := span.Attributes().Get("dst.model")
+	require.True(t, ok)
+	assert.Equal(t, "m", spanVal.Str())
+
+	evtVal, ok := span.Events().At(0).Attributes().Get("dst.model")
+	require.True(t, ok)
+	assert.Equal(t, "me", evtVal.Str())
+}
+
+func TestProcessTraces_AppliesSourcesInSliceOrder(t *testing.T) {
+	// Two sources targeting the same destination; overwrite=true on both.
+	// The second source's write wins, confirming iteration order is honored.
+	p := &genaiNormalizerProcessor{
+		sources: []sourceNormalizer{
+			newNormalizer(map[string]string{"src.a": "dst.model"}, true, true),
+			newNormalizer(map[string]string{"src.b": "dst.model"}, true, true),
+		},
+	}
+
+	td, span := newSpan()
+	span.Attributes().PutStr("src.a", "from-a")
+	span.Attributes().PutStr("src.b", "from-b")
+
+	_, err := p.processTraces(t.Context(), td)
+	require.NoError(t, err)
+
+	v, ok := span.Attributes().Get("dst.model")
+	require.True(t, ok)
+	assert.Equal(t, "from-b", v.Str())
+}
+
+func TestProcessTraces_EmptyTraces(t *testing.T) {
+	p := &genaiNormalizerProcessor{sources: []sourceNormalizer{
+		newNormalizer(map[string]string{"src.a": "dst.a"}, true, false),
+	}}
+	_, err := p.processTraces(t.Context(), ptrace.NewTraces())
+	require.NoError(t, err)
+}
+
+func TestCreateTracesProcessor_RejectsInvalidConfig(t *testing.T) {
+	_, err := createTracesProcessor(
+		t.Context(),
+		processortest.NewNopSettings(metadata.Type),
+		&Config{Sources: map[SourceName]Source{"bogus": {}}},
+		new(consumertest.TracesSink),
+	)
+	require.Error(t, err)
+}
