@@ -25,22 +25,30 @@ func TestValidate(t *testing.T) {
 		{
 			name: "valid openinference source",
 			cfg: Config{
-				Sources: map[SourceName]Source{
-					SourceOpenInference: {RemoveOriginals: true},
-				},
+				Sources: []Source{{Name: SourceOpenInference, RemoveOriginals: true}},
 			},
 		},
 		{
 			name:    "no sources",
-			cfg:     Config{Sources: map[SourceName]Source{}},
+			cfg:     Config{Sources: []Source{}},
 			wantErr: "at least one source",
 		},
 		{
 			name: "unknown source",
 			cfg: Config{
-				Sources: map[SourceName]Source{"bogus": {}},
+				Sources: []Source{{Name: "bogus"}},
 			},
-			wantErr: `unknown source "bogus"`,
+			wantErr: `sources[0]: unknown source "bogus"`,
+		},
+		{
+			name: "duplicate source",
+			cfg: Config{
+				Sources: []Source{
+					{Name: SourceOpenInference},
+					{Name: SourceOpenInference},
+				},
+			},
+			wantErr: `sources[1]: duplicate source "openinference"`,
 		},
 	}
 	for _, tt := range tests {
@@ -75,8 +83,9 @@ func TestLoadConfig(t *testing.T) {
 		{
 			id: component.NewIDWithName(metadata.Type, ""),
 			expected: &Config{
-				Sources: map[SourceName]Source{
-					SourceOpenInference: {
+				Sources: []Source{
+					{
+						Name:            SourceOpenInference,
 						RemoveOriginals: true,
 						Overwrite:       false,
 					},
@@ -90,9 +99,7 @@ func TestLoadConfig(t *testing.T) {
 		{
 			id: component.NewIDWithName(metadata.Type, "openinference_only"),
 			expected: &Config{
-				Sources: map[SourceName]Source{
-					SourceOpenInference: {},
-				},
+				Sources: []Source{{Name: SourceOpenInference}},
 			},
 		},
 		{
@@ -102,6 +109,10 @@ func TestLoadConfig(t *testing.T) {
 		{
 			id:           component.NewIDWithName(metadata.Type, "unknown_source"),
 			errorMessage: `unknown source "foobar"`,
+		},
+		{
+			id:           component.NewIDWithName(metadata.Type, "duplicate_source"),
+			errorMessage: `duplicate source "openinference"`,
 		},
 	}
 	for _, tt := range tests {

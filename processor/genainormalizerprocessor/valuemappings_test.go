@@ -26,7 +26,7 @@ func TestTransformValue(t *testing.T) {
 			// operationNameValues is empty in this PR; dispatch still runs and
 			// falls back to the input value.
 			name:      "operation-name target with unmapped value passes through",
-			targetKey: targetOperationName,
+			targetKey: "gen_ai.operation.name",
 			value:     "anything",
 			want:      "anything",
 		},

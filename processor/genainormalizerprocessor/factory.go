@@ -27,7 +27,7 @@ func NewFactory() processor.Factory {
 // explicitly specified by the user; there are no built-in source defaults.
 func createDefaultConfig() component.Config {
 	return &Config{
-		Sources: map[SourceName]Source{},
+		Sources: []Source{},
 	}
 }
 

@@ -3,9 +3,15 @@
 
 package genainormalizerprocessor // import "github.com/open-telemetry/opentelemetry-collector-contrib/processor/genainormalizerprocessor"
 
-import "strings"
+import (
+	"strings"
 
-const targetOperationName = "gen_ai.operation.name"
+	conventions "go.opentelemetry.io/otel/semconv/v1.40.0"
+)
+
+// targetOperationName is the OTel GenAI operation-name attribute key.
+// Sourced from go.opentelemetry.io/otel/semconv for alignment with upstream.
+var targetOperationName = string(conventions.GenAIOperationNameKey)
 
 // operationNameValues maps source operation/span-kind values to OTel GenAI
 // operation names. Keys are lowercased; transformValue lowercases the input

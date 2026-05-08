@@ -5,7 +5,6 @@ package genainormalizerprocessor // import "github.com/open-telemetry/openteleme
 
 import (
 	"context"
-	"slices"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -24,18 +23,12 @@ type genaiNormalizerProcessor struct {
 }
 
 // newGenaiNormalizerProcessor builds a processor from a validated Config.
+// Sources are applied in the order specified in the configuration.
 func newGenaiNormalizerProcessor(cfg *Config) *genaiNormalizerProcessor {
-	names := make([]SourceName, 0, len(cfg.Sources))
-	for name := range cfg.Sources {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-
-	p := &genaiNormalizerProcessor{sources: make([]sourceNormalizer, 0, len(names))}
-	for _, name := range names {
-		src := cfg.Sources[name]
+	p := &genaiNormalizerProcessor{sources: make([]sourceNormalizer, 0, len(cfg.Sources))}
+	for _, src := range cfg.Sources {
 		p.sources = append(p.sources, sourceNormalizer{
-			lookupTable:     buildLookupTable(name),
+			lookupTable:     buildLookupTable(src.Name),
 			removeOriginals: src.RemoveOriginals,
 			overwrite:       src.Overwrite,
 		})
@@ -50,15 +43,9 @@ func (p *genaiNormalizerProcessor) processTraces(_ context.Context, td ptrace.Tr
 		for j := 0; j < ilss.Len(); j++ {
 			spans := ilss.At(j).Spans()
 			for k := 0; k < spans.Len(); k++ {
-				span := spans.At(k)
+				attrs := spans.At(k).Attributes()
 				for s := range p.sources {
-					p.sources[s].normalizeAttributes(span.Attributes())
-				}
-				events := span.Events()
-				for e := 0; e < events.Len(); e++ {
-					for s := range p.sources {
-						p.sources[s].normalizeAttributes(events.At(e).Attributes())
-					}
+					p.sources[s].normalizeAttributes(attrs)
 				}
 			}
 		}

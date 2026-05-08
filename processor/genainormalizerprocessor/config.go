@@ -24,6 +24,9 @@ var supportedSources = map[SourceName]struct{}{
 
 // Source configures normalization behavior for a single source convention.
 type Source struct {
+	// Name identifies the source convention (e.g. "openinference").
+	Name SourceName `mapstructure:"name"`
+
 	// RemoveOriginals deletes source attributes after mapping.
 	RemoveOriginals bool `mapstructure:"remove_originals"`
 
@@ -34,9 +37,10 @@ type Source struct {
 
 // Config holds the configuration for the genainormalizer processor.
 type Config struct {
-	// Sources selects which source conventions to normalize and their per-source options.
-	// At least one source must be specified.
-	Sources map[SourceName]Source `mapstructure:"sources"`
+	// Sources is an ordered list of sources to normalize. Each span is
+	// processed by every source in the order specified. At least one source
+	// must be specified.
+	Sources []Source `mapstructure:"sources"`
 }
 
 var _ xconfmap.Validator = (*Config)(nil)
@@ -46,10 +50,15 @@ func (c *Config) Validate() error {
 	if len(c.Sources) == 0 {
 		return errors.New("at least one source must be specified")
 	}
-	for name := range c.Sources {
-		if _, ok := supportedSources[name]; !ok {
-			return fmt.Errorf("unknown source %q", name)
+	seen := make(map[SourceName]struct{}, len(c.Sources))
+	for i, src := range c.Sources {
+		if _, ok := supportedSources[src.Name]; !ok {
+			return fmt.Errorf("sources[%d]: unknown source %q", i, src.Name)
 		}
+		if _, dup := seen[src.Name]; dup {
+			return fmt.Errorf("sources[%d]: duplicate source %q", i, src.Name)
+		}
+		seen[src.Name] = struct{}{}
 	}
 	return nil
 }

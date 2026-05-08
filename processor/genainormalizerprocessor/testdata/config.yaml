@@ -1,23 +1,29 @@
 # Full config exercising the supported source and its per-source fields.
 genainormalizer:
   sources:
-    openinference:
+    - name: openinference
       remove_originals: true
       overwrite: false
 
 # Sources omitted entirely: validation error (at least one source required).
 genainormalizer/empty:
 
-# Sources explicitly provided with only openinference defaults.
+# Sources with only openinference defaults.
 genainormalizer/openinference_only:
   sources:
-    openinference: {}
+    - name: openinference
 
-# Explicit empty sources map: validation error.
+# Explicit empty sources list: validation error.
 genainormalizer/empty_sources:
-  sources: {}
+  sources: []
 
 # Unknown source name: validation error.
 genainormalizer/unknown_source:
   sources:
-    foobar: {}
+    - name: foobar
+
+# Same source listed twice: validation error.
+genainormalizer/duplicate_source:
+  sources:
+    - name: openinference
+    - name: openinference

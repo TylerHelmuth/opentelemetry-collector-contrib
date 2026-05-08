@@ -25,14 +25,15 @@ Source mapping tables are populated in follow-up PRs; this PR provides the norma
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `sources` | map[[source](#source)] | _required_ | Source conventions to normalize. At least one must be specified. |
+| `sources` | list of [source](#source) | _required_ | Ordered list of sources to normalize. At least one must be specified. Each span is processed by every source in the order given. |
 
 ### Source
 
-Each entry in `sources` is keyed by a supported source name and accepts the following fields:
+Each entry in `sources` accepts the following fields:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
+| `name` | string | _required_ | Source convention name. One of `openinference`. |
 | `remove_originals` | bool | `false` | Delete source attributes after mapping. |
 | `overwrite` | bool | `false` | When `true`, overwrite the target attribute if it already exists. When `false`, skip the mapping. |
 
@@ -41,12 +42,12 @@ Each entry in `sources` is keyed by a supported source name and accepts the foll
 Normalization is applied to:
 
 - Span attributes
-- Span event attributes
 
 The following are not modified:
 
 - Resource attributes
 - Scope attributes
+- Span event attributes
 - Span link attributes
 
 ## Examples
@@ -57,7 +58,7 @@ Default configuration:
 processors:
   genainormalizer:
     sources:
-      openinference: {}
+      - name: openinference
 ```
 
 Delete source attributes after mapping:
@@ -66,7 +67,7 @@ Delete source attributes after mapping:
 processors:
   genainormalizer:
     sources:
-      openinference:
+      - name: openinference
         remove_originals: true
 ```
 
@@ -76,7 +77,7 @@ Overwrite existing target attributes:
 processors:
   genainormalizer:
     sources:
-      openinference:
+      - name: openinference
         remove_originals: true
         overwrite: true
 ```

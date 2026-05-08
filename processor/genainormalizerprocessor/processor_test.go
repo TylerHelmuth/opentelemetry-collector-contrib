@@ -234,7 +234,7 @@ func TestNormalizeAttributes(t *testing.T) {
 	}
 }
 
-func TestProcessTraces_AppliesToSpansAndEvents(t *testing.T) {
+func TestProcessTraces_AppliesToSpans(t *testing.T) {
 	p := &genaiNormalizerProcessor{
 		sources: []sourceNormalizer{
 			newNormalizer(map[string]string{"src.model": "dst.model"}, true, false),
@@ -243,19 +243,37 @@ func TestProcessTraces_AppliesToSpansAndEvents(t *testing.T) {
 
 	td, span := newSpan()
 	span.Attributes().PutStr("src.model", "m")
-	evt := span.Events().AppendEmpty()
-	evt.Attributes().PutStr("src.model", "me")
 
 	_, err := p.processTraces(t.Context(), td)
 	require.NoError(t, err)
 
-	spanVal, ok := span.Attributes().Get("dst.model")
+	v, ok := span.Attributes().Get("dst.model")
 	require.True(t, ok)
-	assert.Equal(t, "m", spanVal.Str())
+	assert.Equal(t, "m", v.Str())
+}
 
-	evtVal, ok := span.Events().At(0).Attributes().Get("dst.model")
+func TestProcessTraces_IgnoresSpanEvents(t *testing.T) {
+	// Span events are intentionally untouched in this PR; signal-scoped
+	// configuration will be revisited before event/log/metric support lands.
+	p := &genaiNormalizerProcessor{
+		sources: []sourceNormalizer{
+			newNormalizer(map[string]string{"src.model": "dst.model"}, true, false),
+		},
+	}
+
+	td, span := newSpan()
+	evt := span.Events().AppendEmpty()
+	evt.Attributes().PutStr("src.model", "m")
+
+	_, err := p.processTraces(t.Context(), td)
+	require.NoError(t, err)
+
+	evtAttrs := span.Events().At(0).Attributes()
+	_, ok := evtAttrs.Get("dst.model")
+	assert.False(t, ok, "span event attributes must not be modified")
+	v, ok := evtAttrs.Get("src.model")
 	require.True(t, ok)
-	assert.Equal(t, "me", evtVal.Str())
+	assert.Equal(t, "m", v.Str())
 }
 
 func TestProcessTraces_AppliesSourcesInSliceOrder(t *testing.T) {
@@ -292,7 +310,7 @@ func TestCreateTracesProcessor_RejectsInvalidConfig(t *testing.T) {
 	_, err := createTracesProcessor(
 		t.Context(),
 		processortest.NewNopSettings(metadata.Type),
-		&Config{Sources: map[SourceName]Source{"bogus": {}}},
+		&Config{Sources: []Source{{Name: "bogus"}}},
 		new(consumertest.TracesSink),
 	)
 	require.Error(t, err)
