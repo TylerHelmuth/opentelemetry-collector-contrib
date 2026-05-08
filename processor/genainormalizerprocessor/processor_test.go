@@ -414,3 +414,59 @@ func TestCreateTracesProcessor_RejectsInvalidConfig(t *testing.T) {
 	)
 	require.Error(t, err)
 }
+
+// TestNormalize_OpenInferenceEndToEnd exercises the real OpenInference
+// mapping table through createTracesProcessor. Machinery behavior is covered
+// by TestNormalizeAttributes with fixture tables; this test locks in the
+// data-table contract.
+func TestNormalize_OpenInferenceEndToEnd(t *testing.T) {
+	cfg := &Config{
+		Sources: []Source{{Name: SourceOpenInference, RemoveOriginals: true}},
+	}
+	sink := new(consumertest.TracesSink)
+	p, err := createTracesProcessor(t.Context(), processortest.NewNopSettings(metadata.Type), cfg, sink)
+	require.NoError(t, err)
+
+	td, span := newSpan()
+	span.Attributes().PutInt("llm.token_count.prompt", 100)
+	span.Attributes().PutInt("llm.token_count.completion", 200)
+	span.Attributes().PutStr("llm.model_name", "claude-sonnet-4")
+	span.Attributes().PutStr("llm.provider", "anthropic")
+	span.Attributes().PutStr("openinference.span.kind", "LLM")
+	span.Attributes().PutStr("agent.name", "research-agent")
+	span.Attributes().PutStr("session.id", "sess-123")
+
+	require.NoError(t, p.ConsumeTraces(t.Context(), td))
+	out := sink.AllTraces()[0].ResourceSpans().At(0).ScopeSpans().At(0).Spans().At(0).Attributes()
+
+	for _, exp := range []struct {
+		key  string
+		want any
+	}{
+		{"gen_ai.usage.input_tokens", int64(100)},
+		{"gen_ai.usage.output_tokens", int64(200)},
+		{"gen_ai.request.model", "claude-sonnet-4"},
+		{"gen_ai.provider.name", "anthropic"},
+		{"gen_ai.operation.name", "chat"},
+		{"gen_ai.agent.name", "research-agent"},
+		{"gen_ai.conversation.id", "sess-123"},
+	} {
+		v, ok := out.Get(exp.key)
+		require.True(t, ok, "missing %s", exp.key)
+		switch want := exp.want.(type) {
+		case int64:
+			assert.Equal(t, want, v.Int(), exp.key)
+		case string:
+			assert.Equal(t, want, v.Str(), exp.key)
+		}
+	}
+
+	// Originals removed.
+	for _, k := range []string{
+		"llm.token_count.prompt", "llm.token_count.completion", "llm.model_name",
+		"llm.provider", "openinference.span.kind", "agent.name", "session.id",
+	} {
+		_, ok := out.Get(k)
+		assert.False(t, ok, "expected %s to be removed", k)
+	}
+}
