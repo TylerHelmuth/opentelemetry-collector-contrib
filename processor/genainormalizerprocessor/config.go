@@ -24,6 +24,8 @@ var supportedSources = map[SourceName]struct{}{
 
 // Source configures normalization behavior for a single source convention.
 type Source struct {
+	_ struct{} // prevent unkeyed literals
+
 	// Name identifies the source convention (e.g. "openinference").
 	Name SourceName `mapstructure:"name"`
 
@@ -37,6 +39,8 @@ type Source struct {
 
 // Config holds the configuration for the genainormalizer processor.
 type Config struct {
+	_ struct{} // prevent unkeyed literals
+
 	// Sources is an ordered list of sources to normalize. Each span is
 	// processed by every source in the order specified. At least one source
 	// must be specified.
