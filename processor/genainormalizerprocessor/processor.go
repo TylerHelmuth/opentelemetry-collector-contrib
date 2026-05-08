@@ -8,6 +8,7 @@ import (
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
+	conventions "go.opentelemetry.io/otel/semconv/v1.40.0"
 )
 
 // sourceNormalizer holds per-source state used during normalization.
@@ -41,19 +42,30 @@ func (p *genaiNormalizerProcessor) processTraces(_ context.Context, td ptrace.Tr
 	for i := 0; i < rss.Len(); i++ {
 		ilss := rss.At(i).ScopeSpans()
 		for j := 0; j < ilss.Len(); j++ {
-			spans := ilss.At(j).Spans()
+			ss := ilss.At(j)
+			spans := ss.Spans()
+			scopeWrote := false
 			for k := 0; k < spans.Len(); k++ {
 				attrs := spans.At(k).Attributes()
 				for s := range p.sources {
-					p.sources[s].normalizeAttributes(attrs)
+					if p.sources[s].normalizeAttributes(attrs) {
+						scopeWrote = true
+					}
 				}
+			}
+			if scopeWrote {
+				// We rewrote at least one span's attributes in this scope,
+				// so the scope now conforms to our target OTel semconv version.
+				ss.SetSchemaUrl(conventions.SchemaURL)
 			}
 		}
 	}
 	return td, nil
 }
 
-func (sn *sourceNormalizer) normalizeAttributes(attrs pcommon.Map) {
+// normalizeAttributes applies the source's rename rules to attrs. It returns
+// true if at least one attribute was written.
+func (sn *sourceNormalizer) normalizeAttributes(attrs pcommon.Map) bool {
 	type rename struct {
 		from string
 		to   string
@@ -68,9 +80,10 @@ func (sn *sourceNormalizer) normalizeAttributes(attrs pcommon.Map) {
 	})
 
 	if len(renames) == 0 {
-		return
+		return false
 	}
 
+	wrote := false
 	for _, r := range renames {
 		val, ok := attrs.Get(r.from)
 		if !ok {
@@ -98,9 +111,11 @@ func (sn *sourceNormalizer) normalizeAttributes(attrs pcommon.Map) {
 			val.CopyTo(snap)
 			snap.CopyTo(attrs.PutEmpty(r.to))
 		}
+		wrote = true
 
 		if sn.removeOriginals {
 			attrs.Remove(r.from)
 		}
 	}
+	return wrote
 }

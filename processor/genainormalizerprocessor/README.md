@@ -50,6 +50,10 @@ The following are not modified:
 - Span event attributes
 - Span link attributes
 
+### Schema URL
+
+When a mapping fires on a span, the enclosing `ScopeSpans.schema_url` is set to the OTel semantic-conventions version this processor targets (currently `https://opentelemetry.io/schemas/1.40.0`). An existing `schema_url` is overwritten. `ResourceSpans.schema_url` is never modified.
+
 ## Examples
 
 Default configuration:

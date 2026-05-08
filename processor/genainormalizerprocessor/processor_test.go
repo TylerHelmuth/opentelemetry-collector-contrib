@@ -234,6 +234,32 @@ func TestNormalizeAttributes(t *testing.T) {
 	}
 }
 
+func TestNormalizeAttributes_ReportsWrote(t *testing.T) {
+	lookup := map[string]string{"src.model": "dst.model"}
+
+	t.Run("returns true on write", func(t *testing.T) {
+		_, span := newSpan()
+		span.Attributes().PutStr("src.model", "m")
+		sn := newNormalizer(lookup, true, false)
+		assert.True(t, sn.normalizeAttributes(span.Attributes()))
+	})
+
+	t.Run("returns false when no match", func(t *testing.T) {
+		_, span := newSpan()
+		span.Attributes().PutStr("http.method", "GET")
+		sn := newNormalizer(lookup, true, false)
+		assert.False(t, sn.normalizeAttributes(span.Attributes()))
+	})
+
+	t.Run("returns false when overwrite=false and target exists", func(t *testing.T) {
+		_, span := newSpan()
+		span.Attributes().PutStr("src.model", "new")
+		span.Attributes().PutStr("dst.model", "existing")
+		sn := newNormalizer(lookup, true, false)
+		assert.False(t, sn.normalizeAttributes(span.Attributes()))
+	})
+}
+
 func TestProcessTraces_AppliesToSpans(t *testing.T) {
 	p := &genaiNormalizerProcessor{
 		sources: []sourceNormalizer{
@@ -250,6 +276,79 @@ func TestProcessTraces_AppliesToSpans(t *testing.T) {
 	v, ok := span.Attributes().Get("dst.model")
 	require.True(t, ok)
 	assert.Equal(t, "m", v.Str())
+}
+
+func TestProcessTraces_StampsSchemaURLWhenMappingFires(t *testing.T) {
+	p := &genaiNormalizerProcessor{
+		sources: []sourceNormalizer{
+			newNormalizer(map[string]string{"src.model": "dst.model"}, true, false),
+		},
+	}
+
+	td, span := newSpan()
+	span.Attributes().PutStr("src.model", "m")
+
+	_, err := p.processTraces(t.Context(), td)
+	require.NoError(t, err)
+
+	ss := td.ResourceSpans().At(0).ScopeSpans().At(0)
+	assert.Equal(t, "https://opentelemetry.io/schemas/1.40.0", ss.SchemaUrl())
+}
+
+func TestProcessTraces_LeavesSchemaURLWhenNoMappingFires(t *testing.T) {
+	p := &genaiNormalizerProcessor{
+		sources: []sourceNormalizer{
+			newNormalizer(map[string]string{"src.model": "dst.model"}, true, false),
+		},
+	}
+
+	td, span := newSpan()
+	span.Attributes().PutStr("http.method", "GET")
+
+	_, err := p.processTraces(t.Context(), td)
+	require.NoError(t, err)
+
+	ss := td.ResourceSpans().At(0).ScopeSpans().At(0)
+	assert.Empty(t, ss.SchemaUrl(), "schema_url must not be set when no mapping fires")
+}
+
+func TestProcessTraces_OverwritesExistingSchemaURL(t *testing.T) {
+	p := &genaiNormalizerProcessor{
+		sources: []sourceNormalizer{
+			newNormalizer(map[string]string{"src.model": "dst.model"}, true, false),
+		},
+	}
+
+	td, span := newSpan()
+	td.ResourceSpans().At(0).ScopeSpans().At(0).SetSchemaUrl("https://opentelemetry.io/schemas/1.38.0")
+	span.Attributes().PutStr("src.model", "m")
+
+	_, err := p.processTraces(t.Context(), td)
+	require.NoError(t, err)
+
+	ss := td.ResourceSpans().At(0).ScopeSpans().At(0)
+	assert.Equal(t, "https://opentelemetry.io/schemas/1.40.0", ss.SchemaUrl())
+}
+
+func TestProcessTraces_DoesNotModifyResourceSchemaURL(t *testing.T) {
+	p := &genaiNormalizerProcessor{
+		sources: []sourceNormalizer{
+			newNormalizer(map[string]string{"src.model": "dst.model"}, true, false),
+		},
+	}
+
+	td, span := newSpan()
+	td.ResourceSpans().At(0).SetSchemaUrl("https://opentelemetry.io/schemas/1.38.0")
+	span.Attributes().PutStr("src.model", "m")
+
+	_, err := p.processTraces(t.Context(), td)
+	require.NoError(t, err)
+
+	assert.Equal(t,
+		"https://opentelemetry.io/schemas/1.38.0",
+		td.ResourceSpans().At(0).SchemaUrl(),
+		"resource schema_url must not be modified",
+	)
 }
 
 func TestProcessTraces_IgnoresSpanEvents(t *testing.T) {
