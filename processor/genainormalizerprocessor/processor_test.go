@@ -210,14 +210,14 @@ func TestNormalizeAttributes(t *testing.T) {
 		},
 		{
 			name:   "string target routed through transformValue",
-			lookup: map[string]string{"src.op": targetOperationName},
+			lookup: map[string]string{"src.op": targetAttrOperationName},
 			setup: func(attrs pcommon.Map) {
 				attrs.PutStr("src.op", "anything")
 			},
 			verify: func(t *testing.T, attrs pcommon.Map) {
 				// operationNameValues is empty in this PR, so transformValue
 				// returns the input unchanged. The dispatch is still exercised.
-				v, ok := attrs.Get(targetOperationName)
+				v, ok := attrs.Get(targetAttrOperationName)
 				require.True(t, ok)
 				assert.Equal(t, "anything", v.Str())
 			},

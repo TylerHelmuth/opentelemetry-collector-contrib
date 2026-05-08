@@ -8,7 +8,6 @@ import (
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
-	conventions "go.opentelemetry.io/otel/semconv/v1.40.0"
 )
 
 // sourceNormalizer holds per-source state used during normalization.
@@ -56,7 +55,7 @@ func (p *genaiNormalizerProcessor) processTraces(_ context.Context, td ptrace.Tr
 			if scopeWrote {
 				// We rewrote at least one span's attributes in this scope,
 				// so the scope now conforms to our target OTel semconv version.
-				ss.SetSchemaUrl(conventions.SchemaURL)
+				ss.SetSchemaUrl(targetSchemaURL)
 			}
 		}
 	}
