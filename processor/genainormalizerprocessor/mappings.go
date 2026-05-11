@@ -17,15 +17,6 @@ func builtInMappings(name SourceName) []mapping {
 	return nil
 }
 
-// buildLookupTable assembles a per-source lookup from built-in mappings.
-func buildLookupTable(name SourceName) map[string]string {
-	table := make(map[string]string)
-	for _, m := range builtInMappings(name) {
-		table[m.from] = m.to
-	}
-	return table
-}
-
 // openInferenceMappings is the OpenInference attribute-rename table.
 // Target keys come from semconv.go (single source of truth for the targeted
 // OTel semconv version).

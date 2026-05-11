@@ -16,11 +16,20 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/genainormalizerprocessor/internal/metadata"
 )
 
-// newNormalizer builds a single-source sourceNormalizer from a fixture lookup
-// table so machinery tests do not depend on the populated built-in tables.
+// newNormalizer builds a single-source sourceNormalizer from a fixture
+// rename table so machinery tests do not depend on the populated built-in
+// tables. The map key/value become a mapping pair; tests with only one entry
+// don't depend on iteration order so this is fine.
 func newNormalizer(lookup map[string]string, removeOriginals, overwrite bool) sourceNormalizer {
+	mappings := make([]mapping, 0, len(lookup))
+	fromSet := make(map[string]struct{}, len(lookup))
+	for from, to := range lookup {
+		mappings = append(mappings, mapping{from: from, to: to})
+		fromSet[from] = struct{}{}
+	}
 	return sourceNormalizer{
-		lookupTable:     lookup,
+		mappings:        mappings,
+		fromSet:         fromSet,
 		removeOriginals: removeOriginals,
 		overwrite:       overwrite,
 	}

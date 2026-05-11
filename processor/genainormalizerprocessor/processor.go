@@ -12,7 +12,16 @@ import (
 
 // sourceNormalizer holds per-source state used during normalization.
 type sourceNormalizer struct {
-	lookupTable     map[string]string
+	// mappings holds the ordered (from, to) pairs for this source. Stored as
+	// a slice rather than a map because (a) iteration order is stable, so
+	// renames are applied deterministically when two sources map to the same
+	// target (e.g. llm.model_name and embedding.model_name both → request.model),
+	// and (b) for the small K we care about (≤ ~20), a linear walk is faster
+	// and allocation-free compared to building/iterating a hash map.
+	mappings []mapping
+	// fromSet is the set of from-keys, used only for the cheap probe that
+	// short-circuits non-matching spans before we do the per-mapping Get work.
+	fromSet         map[string]struct{}
 	removeOriginals bool
 	overwrite       bool
 }
@@ -27,8 +36,14 @@ type genaiNormalizerProcessor struct {
 func newGenaiNormalizerProcessor(cfg *Config) *genaiNormalizerProcessor {
 	p := &genaiNormalizerProcessor{sources: make([]sourceNormalizer, 0, len(cfg.Sources))}
 	for _, src := range cfg.Sources {
+		m := builtInMappings(src.Name)
+		fromSet := make(map[string]struct{}, len(m))
+		for _, mp := range m {
+			fromSet[mp.from] = struct{}{}
+		}
 		p.sources = append(p.sources, sourceNormalizer{
-			lookupTable:     buildLookupTable(src.Name),
+			mappings:        m,
+			fromSet:         fromSet,
 			removeOriginals: src.RemoveOriginals,
 			overwrite:       src.Overwrite,
 		})
@@ -64,56 +79,72 @@ func (p *genaiNormalizerProcessor) processTraces(_ context.Context, td ptrace.Tr
 
 // normalizeAttributes applies the source's rename rules to attrs. It returns
 // true if at least one attribute was written.
+//
+// Hot path: iterate the mappings slice and probe attrs for each "from" key.
+// This is faster than the inverse — Range over attrs + hashtable lookup —
+// for match cases because:
+//   - It avoids the Range closure heap allocation.
+//   - It avoids a temporary "renames to apply" slice.
+//
+// For non-matching spans (no GenAI attributes), a single Range with hash-set
+// lookup is much cheaper than K Gets through the mappings slice, so we gate
+// the slow path on a fast probe.
 func (sn *sourceNormalizer) normalizeAttributes(attrs pcommon.Map) bool {
-	type rename struct {
-		from string
-		to   string
+	if attrs.Len() == 0 || len(sn.mappings) == 0 {
+		return false
 	}
-	var renames []rename
-
+	// Probe: do any attrs keys belong to this source? Range over attrs (≤ N
+	// hash lookups) is cheaper than blindly running the mappings loop (K Gets
+	// over attrs) when the span has nothing to rename — which is most spans
+	// flowing through a non-GenAI pipeline.
+	mightMatch := false
 	attrs.Range(func(k string, _ pcommon.Value) bool {
-		if target, ok := sn.lookupTable[k]; ok {
-			renames = append(renames, rename{k, target})
+		if _, ok := sn.fromSet[k]; ok {
+			mightMatch = true
+			return false
 		}
 		return true
 	})
-
-	if len(renames) == 0 {
+	if !mightMatch {
 		return false
 	}
 
 	wrote := false
-	for _, r := range renames {
-		val, ok := attrs.Get(r.from)
+	for _, m := range sn.mappings {
+		val, ok := attrs.Get(m.from)
 		if !ok {
 			continue
 		}
-		if _, exists := attrs.Get(r.to); exists && !sn.overwrite {
+		// GetOrPutEmpty folds the target existence check and the slot
+		// allocation into a single scan of attrs. The prior Get(to) + Put*
+		// pair scanned twice (Put* itself does an internal Get).
+		dest, existed := attrs.GetOrPutEmpty(m.to)
+		if existed && !sn.overwrite {
 			continue
 		}
-
-		// Read scalar values up front so they remain valid across subsequent
-		// Put* calls that may reallocate the backing slice.
+		// val points into attrs's backing slice. GetOrPutEmpty just above may
+		// have reallocated that slice, but val's wrapper holds the *AnyValue
+		// pointer by value — the pointer itself was copied during slice grow
+		// and still resolves to the original key/value data, so reads remain
+		// valid.
 		switch val.Type() {
 		case pcommon.ValueTypeStr:
-			attrs.PutStr(r.to, transformValue(r.to, val.Str()))
+			dest.SetStr(transformValue(m.to, val.Str()))
 		case pcommon.ValueTypeInt:
-			attrs.PutInt(r.to, val.Int())
+			dest.SetInt(val.Int())
 		case pcommon.ValueTypeDouble:
-			attrs.PutDouble(r.to, val.Double())
+			dest.SetDouble(val.Double())
 		case pcommon.ValueTypeBool:
-			attrs.PutBool(r.to, val.Bool())
+			dest.SetBool(val.Bool())
 		default:
-			// Map / Slice / Bytes: snapshot before writing so the source read
-			// is independent of any reallocation the destination write causes.
-			snap := pcommon.NewValueEmpty()
-			val.CopyTo(snap)
-			snap.CopyTo(attrs.PutEmpty(r.to))
+			// Map / Slice / Bytes: val and dest reference independent
+			// AnyValue regions, so CopyTo is safe without a snapshot.
+			val.CopyTo(dest)
 		}
 		wrote = true
 
 		if sn.removeOriginals {
-			attrs.Remove(r.from)
+			attrs.Remove(m.from)
 		}
 	}
 	return wrote
