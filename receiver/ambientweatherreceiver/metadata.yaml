@@ -1,0 +1,169 @@
+display_name: Ambient Weather Receiver
+type: ambientweather
+
+description: |
+  The Ambient Weather Receiver hosts an HTTP server that ingests metrics pushed by Ambient Weather Wi-Fi
+  consoles configured in "custom server" mode (the WS View / Awnet "Customized" upload screen). Weather
+  readings arrive as URL query parameters in the AMBWeather format and are converted into OpenTelemetry
+  gauge metrics. Measurements are converted to canonical SI/UCUM units, except for relative-humidity-style
+  percentages which are passed through unchanged.
+
+status:
+  class: receiver
+  stability:
+    development: [metrics]
+  distributions: []
+  codeowners:
+    active: [TylerHelmuth]
+
+resource_attributes:
+  ambientweather.station.mac:
+    description: The MAC address (AMBWeather `MAC`) or PASSKEY uniquely identifying the weather station.
+    type: string
+    enabled: true
+  ambientweather.station.name:
+    description: A user-supplied friendly name for the station, set via the `station_name` config option.
+    type: string
+    enabled: true
+  ambientweather.station.type:
+    description: The station type / firmware string reported by the console (e.g. "AMBWeatherV4.3.4").
+    type: string
+    enabled: true
+
+attributes:
+  lightning.period:
+    description: The window a lightning strike count covers.
+    type: string
+  rainfall.period:
+    description: The accumulation window that a rainfall reading covers.
+    type: string
+  sensor:
+    description: |
+      Identifies which sensor produced the reading: "outdoor" or "indoor" for the primary console sensors,
+      or the channel number ("1".."10") for an add-on remote sensor.
+    type: string
+
+metrics:
+  ambientweather.battery.status:
+    description: "Battery status reported by a sensor: 1 = OK, 0 = low."
+    enabled: true
+    stability: development
+    unit: "1"
+    gauge:
+      value_type: int
+    attributes: [sensor]
+  ambientweather.humidity:
+    description: Relative humidity.
+    enabled: true
+    stability: development
+    unit: "%"
+    gauge:
+      value_type: double
+    attributes: [sensor]
+  ambientweather.lightning.distance:
+    description: Distance to the last detected lightning strike. Reported in km on consoles configured with metric wind-speed units.
+    enabled: true
+    stability: development
+    unit: km
+    gauge:
+      value_type: double
+  ambientweather.lightning.strikes:
+    description: Lightning strikes counted by the device over the reported period.
+    enabled: true
+    stability: development
+    unit: "{strike}"
+    gauge:
+      value_type: int
+    attributes: [lightning.period]
+  ambientweather.pm25:
+    description: PM2.5 particulate-matter mass concentration.
+    enabled: true
+    stability: development
+    unit: ug/m3
+    gauge:
+      value_type: double
+    attributes: [sensor]
+  ambientweather.pressure.absolute:
+    description: Absolute (station) barometric pressure.
+    enabled: true
+    stability: development
+    unit: hPa
+    gauge:
+      value_type: double
+  ambientweather.pressure.relative:
+    description: Relative (sea-level-adjusted) barometric pressure.
+    enabled: true
+    stability: development
+    unit: hPa
+    gauge:
+      value_type: double
+  ambientweather.rain.rate:
+    description: Instantaneous rain rate.
+    enabled: true
+    stability: development
+    unit: mm/h
+    gauge:
+      value_type: double
+  ambientweather.rainfall:
+    description: Accumulated rainfall over the reported period.
+    enabled: true
+    stability: development
+    unit: mm
+    gauge:
+      value_type: double
+    attributes: [rainfall.period]
+  ambientweather.soil.moisture:
+    description: Soil moisture.
+    enabled: true
+    stability: development
+    unit: "%"
+    gauge:
+      value_type: double
+    attributes: [sensor]
+  ambientweather.solar.radiation:
+    description: Solar irradiance.
+    enabled: true
+    stability: development
+    unit: W/m2
+    gauge:
+      value_type: double
+  ambientweather.temperature:
+    description: Air temperature reading.
+    enabled: true
+    stability: development
+    unit: Cel
+    gauge:
+      value_type: double
+    attributes: [sensor]
+  ambientweather.uv.index:
+    description: Ultraviolet radiation index.
+    enabled: true
+    stability: development
+    unit: "1"
+    gauge:
+      value_type: int
+  ambientweather.wind.direction:
+    description: Wind direction, in degrees clockwise from true north.
+    enabled: true
+    stability: development
+    unit: deg
+    gauge:
+      value_type: double
+  ambientweather.wind.gust:
+    description: Instantaneous wind gust speed.
+    enabled: true
+    stability: development
+    unit: m/s
+    gauge:
+      value_type: double
+  ambientweather.wind.speed:
+    description: Instantaneous wind speed.
+    enabled: true
+    stability: development
+    unit: m/s
+    gauge:
+      value_type: double
+
+tests:
+  config:
+    endpoint: localhost:0

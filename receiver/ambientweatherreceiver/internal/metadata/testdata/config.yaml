@@ -1,0 +1,173 @@
+default:
+all_set:
+  metrics:
+    ambientweather.battery.status:
+      enabled: true
+      attributes: ["sensor"]
+    ambientweather.humidity:
+      enabled: true
+      attributes: ["sensor"]
+    ambientweather.lightning.distance:
+      enabled: true
+    ambientweather.lightning.strikes:
+      enabled: true
+      attributes: ["lightning.period"]
+    ambientweather.pm25:
+      enabled: true
+      attributes: ["sensor"]
+    ambientweather.pressure.absolute:
+      enabled: true
+    ambientweather.pressure.relative:
+      enabled: true
+    ambientweather.rain.rate:
+      enabled: true
+    ambientweather.rainfall:
+      enabled: true
+      attributes: ["rainfall.period"]
+    ambientweather.soil.moisture:
+      enabled: true
+      attributes: ["sensor"]
+    ambientweather.solar.radiation:
+      enabled: true
+    ambientweather.temperature:
+      enabled: true
+      attributes: ["sensor"]
+    ambientweather.uv.index:
+      enabled: true
+    ambientweather.wind.direction:
+      enabled: true
+    ambientweather.wind.gust:
+      enabled: true
+    ambientweather.wind.speed:
+      enabled: true
+  resource_attributes:
+    ambientweather.station.mac:
+      enabled: true
+    ambientweather.station.name:
+      enabled: true
+    ambientweather.station.type:
+      enabled: true
+reaggregate_set:
+  metrics:
+    ambientweather.battery.status:
+      enabled: true
+      attributes: []
+    ambientweather.humidity:
+      enabled: true
+      attributes: []
+    ambientweather.lightning.distance:
+      enabled: true
+    ambientweather.lightning.strikes:
+      enabled: true
+      attributes: []
+    ambientweather.pm25:
+      enabled: true
+      attributes: []
+    ambientweather.pressure.absolute:
+      enabled: true
+    ambientweather.pressure.relative:
+      enabled: true
+    ambientweather.rain.rate:
+      enabled: true
+    ambientweather.rainfall:
+      enabled: true
+      attributes: []
+    ambientweather.soil.moisture:
+      enabled: true
+      attributes: []
+    ambientweather.solar.radiation:
+      enabled: true
+    ambientweather.temperature:
+      enabled: true
+      attributes: []
+    ambientweather.uv.index:
+      enabled: true
+    ambientweather.wind.direction:
+      enabled: true
+    ambientweather.wind.gust:
+      enabled: true
+    ambientweather.wind.speed:
+      enabled: true
+  resource_attributes:
+    ambientweather.station.mac:
+      enabled: true
+    ambientweather.station.name:
+      enabled: true
+    ambientweather.station.type:
+      enabled: true
+none_set:
+  metrics:
+    ambientweather.battery.status:
+      enabled: false
+      attributes: ["sensor"]
+    ambientweather.humidity:
+      enabled: false
+      attributes: ["sensor"]
+    ambientweather.lightning.distance:
+      enabled: false
+    ambientweather.lightning.strikes:
+      enabled: false
+      attributes: ["lightning.period"]
+    ambientweather.pm25:
+      enabled: false
+      attributes: ["sensor"]
+    ambientweather.pressure.absolute:
+      enabled: false
+    ambientweather.pressure.relative:
+      enabled: false
+    ambientweather.rain.rate:
+      enabled: false
+    ambientweather.rainfall:
+      enabled: false
+      attributes: ["rainfall.period"]
+    ambientweather.soil.moisture:
+      enabled: false
+      attributes: ["sensor"]
+    ambientweather.solar.radiation:
+      enabled: false
+    ambientweather.temperature:
+      enabled: false
+      attributes: ["sensor"]
+    ambientweather.uv.index:
+      enabled: false
+    ambientweather.wind.direction:
+      enabled: false
+    ambientweather.wind.gust:
+      enabled: false
+    ambientweather.wind.speed:
+      enabled: false
+  resource_attributes:
+    ambientweather.station.mac:
+      enabled: false
+    ambientweather.station.name:
+      enabled: false
+    ambientweather.station.type:
+      enabled: false
+filter_set_include:
+  resource_attributes:
+    ambientweather.station.mac:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+    ambientweather.station.name:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+    ambientweather.station.type:
+      enabled: true
+      metrics_include:
+        - regexp: ".*"
+filter_set_exclude:
+  resource_attributes:
+    ambientweather.station.mac:
+      enabled: true
+      metrics_exclude:
+        - strict: "ambientweather.station.mac-val"
+    ambientweather.station.name:
+      enabled: true
+      metrics_exclude:
+        - strict: "ambientweather.station.name-val"
+    ambientweather.station.type:
+      enabled: true
+      metrics_exclude:
+        - strict: "ambientweather.station.type-val"

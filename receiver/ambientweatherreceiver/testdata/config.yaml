@@ -1,0 +1,4 @@
+ambientweather:
+  endpoint: 0.0.0.0:6255
+  path: /custom/report/
+  station_name: backyard
