@@ -141,8 +141,6 @@ main () {
     #
     # Reviewers are requested one at a time so a single invalid reviewer
     # doesn't drop the rest of the requests.
-    # Use key expansion rather than ${#REVIEWER_SET[@]} to test for entries: the
-    # latter trips "unbound variable" under 'set -u' when the array is empty.
     if [[ -n "${!REVIEWER_SET[*]}" ]]; then
         for REVIEWER in "${!REVIEWER_SET[@]}"; do
             request_review "${REVIEWER}"
