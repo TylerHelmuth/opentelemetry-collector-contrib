@@ -48,12 +48,13 @@ func isEmpty[K any](target ottl.Getter[K]) ottl.ExprFunc[K] {
 		case pcommon.Slice:
 			return v.Len() == 0, nil
 		default:
-			// Handle native collection types (slices such as []any, []byte or
-			// []string, and maps such as map[string]any) by length. Fixed-size
-			// arrays have a constant length, so for them - and any other type -
-			// emptiness means the zero value. This treats an unset (all-zero)
-			// pcommon.TraceID/SpanID as empty, matching pdata's own IsEmpty.
 			rv := reflect.ValueOf(v)
+			if rv.Kind() == reflect.Ptr {
+				if rv.IsNil() {
+					return true, nil
+				}
+				rv = rv.Elem()
+			}
 			switch rv.Kind() {
 			case reflect.Slice, reflect.Map:
 				return rv.Len() == 0, nil

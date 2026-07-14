@@ -177,6 +177,21 @@ func Test_IsEmpty(t *testing.T) {
 			value:    pcommon.SpanID([8]byte{1, 2, 3, 4, 5, 6, 7, 8}),
 			expected: false,
 		},
+		{
+			name:     "nil pointer",
+			value:    (*string)(nil),
+			expected: true,
+		},
+		{
+			name:     "pointer to empty value",
+			value:    func() *string { s := ""; return &s }(),
+			expected: true,
+		},
+		{
+			name:     "pointer to non-empty value",
+			value:    func() *string { s := "v"; return &s }(),
+			expected: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
