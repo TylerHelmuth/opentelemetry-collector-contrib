@@ -76,7 +76,7 @@ func Test_SetValue(t *testing.T) {
 		{
 			name: "[]byte",
 			val:  func(*testing.T) any { return []byte{1, 2, 3} },
-			want: func(t *testing.T) pcommon.Value {
+			want: func(*testing.T) pcommon.Value {
 				v := pcommon.NewValueEmpty()
 				v.SetEmptyBytes().FromRaw([]byte{1, 2, 3})
 				return v

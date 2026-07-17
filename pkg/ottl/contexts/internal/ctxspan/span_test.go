@@ -629,6 +629,17 @@ func TestPathGetSetter(t *testing.T) {
 				span.SetEndTimestamp(pcommon.NewTimestampFromTime(time.UnixMilli(200)))
 			},
 		},
+		{
+			name: "flags",
+			path: &pathtest.Path[*testContext]{
+				N: "flags",
+			},
+			orig:   int64(0),
+			newVal: int64(1),
+			modified: func(span ptrace.Span) {
+				span.SetFlags(1)
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
