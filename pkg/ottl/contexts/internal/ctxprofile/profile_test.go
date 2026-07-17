@@ -194,8 +194,8 @@ func TestPathGetSetter(t *testing.T) {
 			err = accessor.Set(t.Context(), ctx, struct{}{})
 			require.Error(t, err)
 
-			// Verify nil handling: setters that cannot represent nil return an error,
-			// while value-typed paths accept nil (represented as an empty value).
+			// Verify nil handling: setters for scalar and struct paths return an error, while
+			// setters for pcommon.Value, map, and slice paths accept nil and clear to empty.
 			// Use a fresh context so the nil write does not disturb the assertion below.
 			nilCtx := newProfileContext(pprofile.NewProfile(), pprofile.NewProfilesDictionary())
 			err = accessor.Set(t.Context(), nilCtx, nil)

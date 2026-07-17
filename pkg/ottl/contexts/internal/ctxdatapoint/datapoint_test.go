@@ -476,8 +476,8 @@ func TestPathGetSetter_NumberDataPoint(t *testing.T) {
 			err = accessor.Set(t.Context(), ctx, struct{}{})
 			require.Error(t, err)
 
-			// Verify nil handling: setters that cannot represent nil return an error,
-			// while value-typed paths accept nil (represented as an empty value).
+			// Verify nil handling: setters for scalar and struct paths return an error, while
+			// setters for pcommon.Value, map, and slice paths accept nil and clear to empty.
 			err = accessor.Set(t.Context(), ctx, nil)
 			if tt.nilNoError {
 				require.NoError(t, err)
@@ -985,8 +985,8 @@ func TestPathGetSetter_HistogramDataPoint(t *testing.T) {
 			err = accessor.Set(t.Context(), ctx, struct{}{})
 			require.Error(t, err)
 
-			// Verify nil handling: setters that cannot represent nil return an error,
-			// while value-typed paths accept nil (represented as an empty value).
+			// Verify nil handling: setters for scalar and struct paths return an error, while
+			// setters for pcommon.Value, map, and slice paths accept nil and clear to empty.
 			err = accessor.Set(t.Context(), ctx, nil)
 			if tt.nilNoError {
 				require.NoError(t, err)
@@ -1578,8 +1578,8 @@ func TestPathGetSetter_ExpoHistogramDataPoint(t *testing.T) {
 			err = accessor.Set(t.Context(), ctx, struct{}{})
 			require.Error(t, err)
 
-			// Verify nil handling: setters that cannot represent nil return an error,
-			// while value-typed paths accept nil (represented as an empty value).
+			// Verify nil handling: setters for scalar and struct paths return an error, while
+			// setters for pcommon.Value, map, and slice paths accept nil and clear to empty.
 			err = accessor.Set(t.Context(), ctx, nil)
 			if tt.nilNoError {
 				require.NoError(t, err)
@@ -2069,8 +2069,8 @@ func TestPathGetSetter_SummaryDataPoint(t *testing.T) {
 			err = accessor.Set(t.Context(), ctx, struct{}{})
 			require.Error(t, err)
 
-			// Verify nil handling: setters that cannot represent nil return an error,
-			// while value-typed paths accept nil (represented as an empty value).
+			// Verify nil handling: setters for scalar and struct paths return an error, while
+			// setters for pcommon.Value, map, and slice paths accept nil and clear to empty.
 			err = accessor.Set(t.Context(), ctx, nil)
 			if tt.nilNoError {
 				require.NoError(t, err)
