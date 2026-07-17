@@ -129,6 +129,11 @@ func SetCommonTypedSliceValue[K, V any](ctx context.Context, tCtx K, s CommonTyp
 // If the value is a slice of [any] or pcommon.Slice, and it has an element that the type
 // is not [V], an error is returned.
 func SetCommonTypedSliceValues[V any](s CommonTypedSlice[V], val any) error {
+	if val == nil {
+		// A slice represents nil as an empty slice.
+		s.FromRaw(nil)
+		return nil
+	}
 	switch typeVal := val.(type) {
 	case CommonTypedSlice[V]:
 		s.FromRaw(typeVal.AsRaw())
@@ -220,6 +225,11 @@ func SetCommonIntSliceValue[K any, V constraints.Integer](ctx context.Context, t
 // or a pcommon.Slice which elements are type inferable to int64, otherwise an error is
 // returned.
 func SetCommonIntSliceValues[V constraints.Integer](s CommonTypedSlice[V], val any) error {
+	if val == nil {
+		// A slice represents nil as an empty slice.
+		s.FromRaw(nil)
+		return nil
+	}
 	switch typeVal := val.(type) {
 	case CommonTypedSlice[V]:
 		s.FromRaw(typeVal.AsRaw())

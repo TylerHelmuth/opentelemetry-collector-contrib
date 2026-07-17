@@ -429,6 +429,11 @@ func Test_SetCommonTypedSliceValues(t *testing.T) {
 			want: []string{"one", "two", "three"},
 		},
 		{
+			name: "from nil",
+			val:  nil,
+			want: nil,
+		},
+		{
 			name:      "from invalid type",
 			val:       1,
 			wantError: "invalid type provided for setting a slice of int: string",
@@ -612,6 +617,11 @@ func Test_SetCommonIntSliceValues(t *testing.T) {
 			name: "from pcommon.Slice",
 			val:  ps,
 			want: []int32{1, 2, 3},
+		},
+		{
+			name: "from nil",
+			val:  nil,
+			want: nil,
 		},
 		{
 			name:      "from invalid type",
