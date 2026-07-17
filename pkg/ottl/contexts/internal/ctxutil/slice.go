@@ -166,6 +166,23 @@ func SetCommonTypedSliceValues[V any](s CommonTypedSlice[V], val any) error {
 	return nil
 }
 
+// SetPSliceValue sets a pdata message slice (such as ptrace.SpanEventSlice or
+// pmetric.ExemplarSlice) from val by copying it into dest. These are list-like values
+// even though they are not pcommon.Slice, so a nil val clears dest to an empty slice
+// (created via newEmpty). Any value that is not a [T] returns an error.
+func SetPSliceValue[T interface{ CopyTo(dest T) }](dest T, newEmpty func() T, val any) error {
+	if val == nil {
+		newEmpty().CopyTo(dest)
+		return nil
+	}
+	src, err := ExpectType[T](val)
+	if err != nil {
+		return err
+	}
+	src.CopyTo(dest)
+	return nil
+}
+
 // GetCommonIntSliceValues converts a pdata typed slice of [constraints.Integer] into
 // []int64, which is the standard OTTL type for integer slices.
 func GetCommonIntSliceValues[V constraints.Integer](val CommonTypedSlice[V]) []int64 {

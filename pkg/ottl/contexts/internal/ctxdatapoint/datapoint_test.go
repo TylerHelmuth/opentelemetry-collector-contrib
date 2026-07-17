@@ -122,7 +122,8 @@ func TestPathGetSetter_NumberDataPoint(t *testing.T) {
 			},
 		},
 		{
-			name: "exemplars",
+			name:       "exemplars",
+			nilNoError: true,
 			path: &pathtest.Path[*testContext]{
 				N: "exemplars",
 			},
@@ -631,7 +632,8 @@ func TestPathGetSetter_HistogramDataPoint(t *testing.T) {
 			},
 		},
 		{
-			name: "exemplars",
+			name:       "exemplars",
+			nilNoError: true,
 			path: &pathtest.Path[*testContext]{
 				N: "exemplars",
 			},
@@ -1224,7 +1226,8 @@ func TestPathGetSetter_ExpoHistogramDataPoint(t *testing.T) {
 			},
 		},
 		{
-			name: "exemplars",
+			name:       "exemplars",
+			nilNoError: true,
 			path: &pathtest.Path[*testContext]{
 				N: "exemplars",
 			},
@@ -1715,7 +1718,8 @@ func TestPathGetSetter_SummaryDataPoint(t *testing.T) {
 			},
 		},
 		{
-			name: "quantile_values",
+			name:       "quantile_values",
+			nilNoError: true,
 			path: &pathtest.Path[*testContext]{
 				N: "quantile_values",
 			},

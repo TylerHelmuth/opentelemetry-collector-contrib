@@ -659,3 +659,30 @@ func Test_GetCommonIntSliceValues(t *testing.T) {
 	st.FromRaw([]int32{1, 2, 3})
 	assert.Equal(t, []int64{1, 2, 3}, ctxutil.GetCommonIntSliceValues[int32](st))
 }
+
+func Test_SetPSliceValue(t *testing.T) {
+	src := pcommon.NewSlice()
+	require.NoError(t, src.FromRaw([]any{"a", "b"}))
+
+	t.Run("copies the slice, replacing existing contents", func(t *testing.T) {
+		dest := pcommon.NewSlice()
+		dest.AppendEmpty().SetStr("old")
+		err := ctxutil.SetPSliceValue(dest, pcommon.NewSlice, src)
+		require.NoError(t, err)
+		assert.Equal(t, []any{"a", "b"}, dest.AsRaw())
+	})
+
+	t.Run("nil clears to an empty slice", func(t *testing.T) {
+		dest := pcommon.NewSlice()
+		dest.AppendEmpty().SetStr("old")
+		err := ctxutil.SetPSliceValue(dest, pcommon.NewSlice, nil)
+		require.NoError(t, err)
+		assert.Equal(t, 0, dest.Len())
+	})
+
+	t.Run("invalid type returns an error", func(t *testing.T) {
+		dest := pcommon.NewSlice()
+		err := ctxutil.SetPSliceValue(dest, pcommon.NewSlice, "not a slice")
+		require.Error(t, err)
+	})
+}

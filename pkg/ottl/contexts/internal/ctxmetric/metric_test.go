@@ -107,7 +107,8 @@ func TestPathGetSetter(t *testing.T) {
 			},
 		},
 		{
-			name: "metric data points",
+			name:       "metric data points",
+			nilNoError: true,
 			path: &pathtest.Path[*testContext]{
 				N: "data_points",
 			},

@@ -519,7 +519,8 @@ func TestPathGetSetter(t *testing.T) {
 			},
 		},
 		{
-			name: "events",
+			name:       "events",
+			nilNoError: true,
 			path: &pathtest.Path[*testContext]{
 				N: "events",
 			},
@@ -544,7 +545,8 @@ func TestPathGetSetter(t *testing.T) {
 			},
 		},
 		{
-			name: "links",
+			name:       "links",
+			nilNoError: true,
 			path: &pathtest.Path[*testContext]{
 				N: "links",
 			},

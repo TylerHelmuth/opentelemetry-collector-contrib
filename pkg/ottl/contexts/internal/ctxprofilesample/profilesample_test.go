@@ -45,8 +45,9 @@ func TestPathGetSetter(t *testing.T) {
 			nilNoError: true,
 		},
 		{
-			path: "timestamps",
-			val:  []time.Time{tsNow},
+			path:       "timestamps",
+			val:        []time.Time{tsNow},
+			nilNoError: true,
 		},
 	}
 

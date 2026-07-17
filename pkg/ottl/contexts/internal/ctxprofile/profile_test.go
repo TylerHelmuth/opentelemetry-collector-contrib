@@ -41,8 +41,9 @@ func TestPathGetSetter(t *testing.T) {
 			val:  "cycles",
 		},
 		{
-			path: "sample",
-			val:  createSampleSlice(),
+			path:       "sample",
+			val:        createSampleSlice(),
+			nilNoError: true,
 		},
 		{
 			path: "time_unix_nano",
